@@ -1,0 +1,14 @@
+{
+	"Targets": [
+		{
+			"Name": "HydroAcousticSandbox",
+			"Path": "..\\Source\\HydroAcousticSandbox.Target.cs",
+			"Type": "Game"
+		},
+		{
+			"Name": "HydroAcousticSandboxEditor",
+			"Path": "..\\Source\\HydroAcousticSandboxEditor.Target.cs",
+			"Type": "Editor"
+		}
+	]
+}
