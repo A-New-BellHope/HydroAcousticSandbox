@@ -1,0 +1,8 @@
+{
+	"SourceFiles": [
+		"G:\\projects\\HydroAcousticSandbox\\Source\\HydroAcousticSandbox\\HydroAcousticSandbox.Build.cs",
+		"G:\\projects\\HydroAcousticSandbox\\Source\\HydroAcousticSandbox.Target.cs",
+		"G:\\projects\\HydroAcousticSandbox\\Source\\HydroAcousticSandboxEditor.Target.cs"
+	],
+	"EngineVersion": "5.4.4"
+}
