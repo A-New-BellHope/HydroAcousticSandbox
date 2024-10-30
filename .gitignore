@@ -6,6 +6,7 @@
 *.lo
 *.o
 *.obj
+*.sln
 
 # Precompiled Headers
 *.gch
@@ -81,3 +82,7 @@ DerivedDataCache/*
 #Starter Content
 Content/StarterContent/*
 *.vsconfig
+
+ProjectFiles/*
+*.ush
+*.gitattributes
