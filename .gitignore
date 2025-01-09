@@ -81,7 +81,7 @@ DerivedDataCache/*
 
 #Starter Content
 Content/StarterContent/*
-*.vsconfig
+/*.vsconfig
 
 ProjectFiles/*
 *.ush
