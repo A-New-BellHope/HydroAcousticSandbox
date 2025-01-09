@@ -81,27 +81,8 @@ DerivedDataCache/*
 
 #Starter Content
 Content/StarterContent/*
-*.vsconfig
+/*.vsconfig
 
 ProjectFiles/*
 *.ush
-/HydroAcousticSandbox.sln
-Binaries/Win64/*
-/Intermediate/Build/BuildRules/HydroAcousticSandboxModuleRules.dll
-/Intermediate/Build/*
-/Binaries/Win64/UnrealEditor-HydroAcousticSandbox.dll
-/Intermediate/ProjectFiles/*
-/Intermediate/Build/BuildRules/HydroAcousticSandboxModuleRulesManifest.json
-/Intermediate/Build/BuildRulesProjects/HydroAcousticSandboxModuleRules/HydroAcousticSandboxModuleRules.csproj
-/Intermediate/Build/SourceFileCache.bin
-/Intermediate/Build/Win64/ActionHistory.bin
-/Intermediate/Build/XmlConfigCache.bin
-/Intermediate/CachedAssetRegistry_0.bin
-/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
-/Intermediate/ShaderAutogen/PCD3D_SM6/AutogenShaderHeaders.ush
-/Saved/Config/WindowsEditor/EditorPerProjectUserSettings.ini
-/Saved/ShaderDebugInfo/PCD3D_SM6/WorldGridMaterial_2c4db6239034490/Default/DDCKey-Editor.txt
-/Saved/SourceControl/UncontrolledChangelists.json
-/Saved/Telemetry/Telemetry.json
-/Intermediate/Build/Win64/HydroAcousticSandboxEditor/Development/HydroAcousticSandboxEditor.uhtmanifest
-/Intermediate/Build/Win64/HydroAcousticSandboxEditor/Development/HydroAcousticSandboxEditor.uhtpath
+*.gitattributes
