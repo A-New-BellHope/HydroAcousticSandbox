@@ -1,0 +1,17 @@
+prefix=${pcfiledir}/../..
+
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+sharedlibdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: szip
+Description: Szip compression software
+Version: 2.1.1
+
+Requires:
+Cflags: -I"${includedir}" -DSZ_BUILT_AS_DYNAMIC_LIB=1
+Libs: "-L${libdir}" -lszip
+Libs.private: 
+
+
