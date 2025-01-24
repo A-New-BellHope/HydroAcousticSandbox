@@ -52,8 +52,6 @@ SourceArt/**/*.tga
 
 # keep the plugins
 !Plugins/**
-Plugins/**/Binaries/
-Plugins/Developer/RiderLink/
 
 # Builds
 Build/*
@@ -75,8 +73,8 @@ Plugins/*/Intermediate/*
 DerivedDataCache/*
 
 .idea
-*.dll
 *.pdb
+/Plugins/netcdfunreal/Binaries/Win64
 /Plugins/bellhop/Binaries/Win64/
 
 #Starter Content
