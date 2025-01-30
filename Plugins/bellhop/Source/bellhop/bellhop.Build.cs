@@ -28,11 +28,13 @@ public class bellhop : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-                "Core",
+				"Core",
                 "CoreUObject",
                 "Engine",
 				"InputCore",
-				"bellhopLibrary",
+				"ProceduralMeshComponent",
+				"Niagara",
+                "bellhopLibrary",
 				"Projects"
 				// ... add other public dependencies that you statically link with here ...
 			}
@@ -42,9 +44,11 @@ public class bellhop : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
+                "ProceduralMeshComponent",
+                "Niagara"
 				// ... add private dependencies that you statically link with here ...	
 			}
-			);
+            );
 		
 		
 		DynamicallyLoadedModuleNames.AddRange(
