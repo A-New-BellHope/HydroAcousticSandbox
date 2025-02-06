@@ -135,12 +135,12 @@ bool ABathymetry::GetEarthBathymetry (
 
 	//TODO: extra copying and allocation (probably not very large)
 	GridX.Empty();
-	for (size_t i = indexLatLow; i <= indexLatHigh; ++i) {
+	for (size_t i = indexLatLow; i < indexLatHigh; ++i) {
 		GridX.Push(Distance(OriginLatitude, OriginLongitude,
 			allY[i], OriginLongitude));
 	}
 	GridY.Empty();
-	for (size_t i = indexLonLow; i <= indexLonHigh; ++i) {
+	for (size_t i = indexLonLow; i < indexLonHigh; ++i) {
 		GridY.Push(Distance(OriginLatitude, OriginLongitude,
 			OriginLatitude, allX[i]));
 	}
