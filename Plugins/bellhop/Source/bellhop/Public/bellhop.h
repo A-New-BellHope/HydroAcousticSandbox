@@ -107,6 +107,9 @@ public:
 	void SetSoundSpeedProfile(const TArray<FVector2D>& InSoundSpeedProfile);
 	bool GetSoundSpeed(const FVector& Position, float& SoundSpeed);
 	void Set1DSoundSpeedProfile(const TArray<FVector2D>& InSoundSpeedProfile);
+	void SetHexahedralSpeedProfile(const TArray<double>& GridX,
+		const TArray<double>& GridY, const TArray<double>& Depth,
+		const TArray<double>& SoundSpeeds);
 
 	TArray<FVector> GetBoundaryPoints();
 	int GetBoundarySizeX();
