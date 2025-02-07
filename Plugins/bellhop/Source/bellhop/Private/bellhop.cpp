@@ -213,7 +213,7 @@ void FbellhopModule::UpdateBoundary3D(bhc::BdryInfoTopBot<true>& Boundary,
 		for (int ix = 0; ix < GridX.Num(); ++ix) {
 			Boundary.bd[ix * GridY.Num() + iy].x.x = GridX[ix];
 			Boundary.bd[ix * GridY.Num() + iy].x.y = GridY[iy];
-			Boundary.bd[ix * GridY.Num() + iy].x.z = 0;//Depth[ix * GridY.Num() + iy];
+			Boundary.bd[ix * GridY.Num() + iy].x.z = Depth[ix * GridY.Num() + iy];
 		}
 	}
 
@@ -1214,6 +1214,56 @@ void FbellhopModule::Set1DSoundSpeedProfile(const TArray<FVector2D>& InSoundSpee
 			}
 			x.first.ssp->dirty = true;
 		}, params);
+}
+
+/// <summary>
+/// SSP with range dependence.
+/// GridX, GridY, Depth are the sample points and
+///    must be monotonically increasing.
+/// SoundSpeeds goes in order x, y, z as (x*Ny+y)*Nz+z
+/// </summary>
+/// <param name="GridX">km</param>
+/// <param name="GridY">km</param>
+/// <param name="Depth">meters</param>
+/// <param name="SoundSpeeds">m/s</param>
+void FbellhopModule::SetHexahedralSpeedProfile(const TArray<double>& GridX,
+	const TArray<double>& GridY, const TArray<double>& Depth,
+	const TArray<double>& SoundSpeeds)
+{
+	//always 3D
+	if (std::holds_alternative<RunType3D>(params))
+	{
+		auto& x = std::get<RunType3D>(params);
+		bhc::extsetup_ssp_hexahedral(x.first, GridX.Num(), GridY.Num(), Depth.Num());
+		x.first.ssp->NPts = Depth.Num();
+		x.first.ssp->Nx = GridX.Num();
+		x.first.ssp->Ny = GridY.Num();
+		x.first.ssp->Nz = Depth.Num();
+		int i = 0;
+		for (int ix = 0; ix < GridX.Num(); ++ix) {
+			for (int iy = 0; iy < GridY.Num(); ++iy) {
+				for (int iz = 0; iz < Depth.Num(); ++iz) {
+					x.first.ssp->Seg.x[ix] = GridX[ix];
+					x.first.ssp->Seg.y[iy] = GridY[iy];
+					x.first.ssp->Seg.z[iz] = Depth[iz];
+					x.first.ssp->z[iz] = Depth[iz];
+					x.first.ssp->cMat[(ix * GridY.Num() + iy) * Depth.Num() + iz] =
+						SoundSpeeds[i];
+					++i;
+				}
+			}
+		}
+		x.first.Bdry->Top.hs.Depth = x.first.ssp->z[0];
+		x.first.Bdry->Bot.hs.Depth = x.first.ssp->z[Depth.Num() - 1];
+		x.first.ssp->rangeInKm = true;
+	}
+	else if (std::holds_alternative<RunTypeNx2D>(params))
+	{
+		LogBellhop("Warning: Nx2D not supported yet ... continuing, but probably fatal.");
+	}
+	else {
+		LogBellhop("Warning: Hexahedral speed only available in 3D ... continuing.");
+	}
 }
 
 /// <summary>

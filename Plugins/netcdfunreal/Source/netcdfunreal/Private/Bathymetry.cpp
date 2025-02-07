@@ -133,16 +133,24 @@ bool ABathymetry::GetEarthBathymetry (
 	//Bellhop wants depth positive going down.
 	for (auto& x : Depth) { x *= -1; }
 
+	//use the great circle distance along the middle (flat earth)
+	const double GridSizeMetersY =
+		Distance((North + South) / 2.0, West, (North + South) / 2.0, East) /
+		double(indexLatHigh - indexLatLow);
+	const double GridSizeMetersX =
+		Distance(North, (East + West) / 2.0, South, (East + West) / 2.0) /
+		double(indexLonHigh - indexLonLow);
+
 	//TODO: extra copying and allocation (probably not very large)
 	GridX.Empty();
-	for (size_t i = indexLatLow; i < indexLatHigh; ++i) {
-		GridX.Push(Distance(OriginLatitude, OriginLongitude,
-			allY[i], OriginLongitude));
+	GridX.SetNumUninitialized(indexLonHigh - indexLonLow);
+	for (size_t i = 0; i < indexLonHigh - indexLonLow; ++i) {
+		GridX[i] = GridSizeMetersX * double(i);
 	}
 	GridY.Empty();
-	for (size_t i = indexLonLow; i < indexLonHigh; ++i) {
-		GridY.Push(Distance(OriginLatitude, OriginLongitude,
-			OriginLatitude, allX[i]));
+	GridY.SetNumUninitialized(indexLatHigh - indexLatLow);
+	for (size_t i = 0; i < indexLatHigh - indexLatLow; ++i) {
+		GridY[i] = GridSizeMetersY * double(i);
 	}
 
 	return true;

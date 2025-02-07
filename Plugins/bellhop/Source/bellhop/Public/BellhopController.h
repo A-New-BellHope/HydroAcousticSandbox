@@ -66,6 +66,10 @@ public:
 	bool SetSingleSoundSpeed(const TArray<double>& Depth,
 		const TArray<double>& SoundSpeed);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	bool SetHexahedralSoundSpeed(
+		const TArray<double>& GridX, const TArray<double>& GridY,
+		const TArray<double>& Depth, const TArray<double>& SoundSpeed);
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	bool GetSingleSoundSpeed(const FVector &Depth, float& SoundSpeed);
 
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
