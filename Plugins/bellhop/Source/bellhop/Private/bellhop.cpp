@@ -213,7 +213,7 @@ void FbellhopModule::UpdateBoundary3D(bhc::BdryInfoTopBot<true>& Boundary,
 		for (int ix = 0; ix < GridX.Num(); ++ix) {
 			Boundary.bd[ix * GridY.Num() + iy].x.x = GridX[ix];
 			Boundary.bd[ix * GridY.Num() + iy].x.y = GridY[iy];
-			Boundary.bd[ix * GridY.Num() + iy].x.z = 0;//Depth[ix * GridY.Num() + iy];
+			Boundary.bd[ix * GridY.Num() + iy].x.z = Depth[ix * GridY.Num() + iy];
 		}
 	}
 
