@@ -133,24 +133,22 @@ bool ABathymetry::GetEarthBathymetry (
 	//Bellhop wants depth positive going down.
 	for (auto& x : Depth) { x *= -1; }
 
-	//use the great circle distance along the middle (flat earth)
-	const double GridSizeMetersY =
-		Distance((North + South) / 2.0, West, (North + South) / 2.0, East) /
-		double(indexLatHigh - indexLatLow);
-	const double GridSizeMetersX =
-		Distance(North, (East + West) / 2.0, South, (East + West) / 2.0) /
-		double(indexLonHigh - indexLonLow);
+	if (OriginLatitude < -500 || OriginLongitude < -500) {
+		ErrorMessage("Warning (GetEarthSoundSpeed): Origin not set, "
+			"cannot calculate grid ... returning.");
+		return false;
+	}
 
 	//TODO: extra copying and allocation (probably not very large)
 	GridX.Empty();
-	GridX.SetNumUninitialized(indexLonHigh - indexLonLow);
-	for (size_t i = 0; i < indexLonHigh - indexLonLow; ++i) {
-		GridX[i] = GridSizeMetersX * double(i);
+	for (size_t i = indexLatLow; i < indexLatHigh; ++i) {
+		GridX.Push(Distance(OriginLatitude, OriginLongitude,
+			allY[i], OriginLongitude));
 	}
 	GridY.Empty();
-	GridY.SetNumUninitialized(indexLatHigh - indexLatLow);
-	for (size_t i = 0; i < indexLatHigh - indexLatLow; ++i) {
-		GridY[i] = GridSizeMetersY * double(i);
+	for (size_t i = indexLonLow; i < indexLonHigh; ++i) {
+		GridY.Push(Distance(OriginLatitude, OriginLongitude,
+			OriginLatitude, allX[i]));
 	}
 
 	return true;
@@ -190,6 +188,12 @@ bool ABathymetry::GetEarthSoundSpeed(const float& North, const float& East,
 	double HoursElapsed = (Time - FDateTime::FromUnixTimestamp(946713600)).GetTotalHours();
 	UE_LOGFMT(LogTemp, Warning, "Hours elapsed {0}", HoursElapsed);
 	int timeIndex = Algo::UpperBound(allTime, HoursElapsed);
+
+	if (OriginLatitude < -500 || OriginLongitude < -500) {
+		ErrorMessage("Warning (GetEarthSoundSpeed): Origin not set, "
+			"cannot calculate grid ... returning.");
+		return false;
+	}
 
 	for (int i = westIndex; i <= eastIndex; ++i) {
 		GridX.Push(Distance(OriginLatitude, OriginLongitude,
