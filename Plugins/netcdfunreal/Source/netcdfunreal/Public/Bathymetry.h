@@ -9,6 +9,8 @@
 #include <algorithm>
 #include "Bathymetry.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FHYCOMDoneEvent);
+
 UCLASS(BlueprintType, Category = "Bathymetry")
 class NETCDFUNREAL_API ABathymetry : public AActor
 {
@@ -43,16 +45,31 @@ public:
 		TArray<double>& Depth) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
-	bool GetEarthSoundSpeed(const float& North, const float& East,
-		const float& South, const float& West, const FDateTime& Time,
-		TArray<double>& GridX, TArray<double>& GridY,
-		TArray<double>& Depth, TArray<double>& SoundSpeed) const;
+	void GetEarthSoundSpeed(const float& North, const float& East,
+		const float& South, const float& West, const FDateTime& Time);
 
 	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
 	FVector LatLongToPosition(const float& Latitude, const float& Longitude) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
 	FVector PositionToLatLong(const FVector& Position) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
+	bool CheckHYCOM() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
+	void GetHexGridX(TArray<double>& GridX) const { GridX.Insert(HexGridX, 0); }
+	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
+	void GetHexGridY(TArray<double>& GridY) const { GridY.Insert(HexGridY, 0); }
+	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
+	void GetHexDepth(TArray<double>& Depth) const { Depth.Insert(HexDepth, 0); }
+	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
+	void GetHexSoundSpeed(TArray<double>& SoundSpeed) const {
+		SoundSpeed.Insert(HexSoundSpeed, 0);
+	}
+
+	UPROPERTY(BlueprintAssignable, Category = "Bathymetry")
+	FHYCOMDoneEvent OnHYCOMDoneEvent;
 
 private:
 	//helpers
@@ -72,5 +89,13 @@ private:
 	double OriginLongitude;
 
 	const double EarthRadius = 6372797.56085;
+
+	FThreadSafeBool HYCOMDone;
+
+	// room for the hexahedral stuff
+	TArray<double> HexGridX;
+	TArray<double> HexGridY;
+	TArray<double> HexDepth;
+	TArray<double> HexSoundSpeed;
 
 };
