@@ -370,6 +370,7 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 		}
 	}
 
+	SoundSpeed.Insert(SoundSpeedCache, 0);
 	IsSoundSpeedDirty = false;
 	return true;
 }
