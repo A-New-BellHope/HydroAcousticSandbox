@@ -152,10 +152,10 @@ void ABellhopController::MoveSource(const int& Source, const float& X)
 /// <param name="position"></param>
 void ABellhopController::MoveSource3D(const int& Source, const FVector& position)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Disabled moving 3D source for testing ..."));
-	//UE_LOG(LogTemp, Warning, TEXT("Moving 3D source ..."));
-	//Bellhop->SetSourcePosition(Source, position);
-	//UE_LOG(LogTemp, Warning, TEXT("Done moving 3D source."));
+	//UE_LOG(LogTemp, Warning, TEXT("Disabled moving 3D source for testing ..."));
+	UE_LOG(LogTemp, Warning, TEXT("Moving 3D source ..."));
+	Bellhop->SetSourcePosition(Source, FVector(position.X, position.Y, FMath::Abs(position.Z)));
+	UE_LOG(LogTemp, Warning, TEXT("Done moving 3D source."));
 }
 
 /// <summary>
