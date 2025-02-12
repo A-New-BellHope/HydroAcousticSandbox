@@ -55,7 +55,7 @@ private:
 
 	bool HYCOMShortToDoubleWithScale(
 		const netCDF::NcVar& Source,
-		const size_t& NumberSamples,
+		const size_t NumberSamples,
 		TArray<double>& Converted) const;
 
 private:
