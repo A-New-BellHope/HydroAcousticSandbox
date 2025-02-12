@@ -6,6 +6,7 @@
 // Sets default values
 ABathymetry::ABathymetry() : OriginLatitude(-1000.0), OriginLongitude(-1000.0)
 {
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 // Called when the game starts or when spawned
@@ -16,6 +17,16 @@ void ABathymetry::BeginPlay()
 	EarthBathymetry = FModuleManager::GetModulePtr<FnetcdfunrealModule>("netcdfunreal");
 
 	Init();
+}
+
+void ABathymetry::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (CheckHYCOM()) {
+		HYCOMDone = false;
+		OnHYCOMDoneEvent.Broadcast();
+	}
 }
 
 /// <summary>
@@ -218,7 +229,6 @@ void ABathymetry::GetEarthSoundSpeed(const float& North, const float& East,
 				southIndex, northIndex, westIndex, eastIndex, HexSoundSpeed);
 
 			HYCOMDone = true;
-			OnHYCOMDoneEvent.Broadcast();
 		}
 	);
 }

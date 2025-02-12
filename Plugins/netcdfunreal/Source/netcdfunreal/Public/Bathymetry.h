@@ -25,6 +25,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
 	bool LoadEarthFile(const FString& Filename);
