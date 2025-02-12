@@ -48,6 +48,12 @@ public:
 		TArray<double>& GridX, TArray<double>& GridY,
 		TArray<double>& Depth, TArray<double>& SoundSpeed) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
+	FVector LatLongToPosition(const float& Latitude, const float& Longitude) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
+	FVector PositionToLatLong(const FVector& Position) const;
+
 private:
 	//helpers
 	void Init();
@@ -64,5 +70,7 @@ private:
 
 	double OriginLatitude;
 	double OriginLongitude;
+
+	const double EarthRadius = 6372797.56085;
 
 };
