@@ -133,24 +133,22 @@ bool ABathymetry::GetEarthBathymetry (
 	//Bellhop wants depth positive going down.
 	for (auto& x : Depth) { x *= -1; }
 
-	//use the great circle distance along the middle (flat earth)
-	const double GridSizeMetersY =
-		Distance((North + South) / 2.0, West, (North + South) / 2.0, East) /
-		double(indexLatHigh - indexLatLow);
-	const double GridSizeMetersX =
-		Distance(North, (East + West) / 2.0, South, (East + West) / 2.0) /
-		double(indexLonHigh - indexLonLow);
+	if (OriginLatitude < -500 || OriginLongitude < -500) {
+		ErrorMessage("Warning (GetEarthSoundSpeed): Origin not set, "
+			"cannot calculate grid ... returning.");
+		return false;
+	}
 
 	//TODO: extra copying and allocation (probably not very large)
 	GridX.Empty();
-	GridX.SetNumUninitialized(indexLonHigh - indexLonLow);
-	for (size_t i = 0; i < indexLonHigh - indexLonLow; ++i) {
-		GridX[i] = GridSizeMetersX * double(i);
+	for (size_t i = indexLatLow; i < indexLatHigh; ++i) {
+		GridX.Push(Distance(OriginLatitude, OriginLongitude,
+			allY[i], OriginLongitude));
 	}
 	GridY.Empty();
-	GridY.SetNumUninitialized(indexLatHigh - indexLatLow);
-	for (size_t i = 0; i < indexLatHigh - indexLatLow; ++i) {
-		GridY[i] = GridSizeMetersY * double(i);
+	for (size_t i = indexLonLow; i < indexLonHigh; ++i) {
+		GridY.Push(Distance(OriginLatitude, OriginLongitude,
+			OriginLatitude, allX[i]));
 	}
 
 	return true;
@@ -191,6 +189,12 @@ bool ABathymetry::GetEarthSoundSpeed(const float& North, const float& East,
 	UE_LOGFMT(LogTemp, Warning, "Hours elapsed {0}", HoursElapsed);
 	int timeIndex = Algo::UpperBound(allTime, HoursElapsed);
 
+	if (OriginLatitude < -500 || OriginLongitude < -500) {
+		ErrorMessage("Warning (GetEarthSoundSpeed): Origin not set, "
+			"cannot calculate grid ... returning.");
+		return false;
+	}
+
 	for (int i = westIndex; i <= eastIndex; ++i) {
 		GridX.Push(Distance(OriginLatitude, OriginLongitude,
 			OriginLatitude, allLongitude[i]));
@@ -204,13 +208,59 @@ bool ABathymetry::GetEarthSoundSpeed(const float& North, const float& East,
 		southIndex, northIndex, westIndex, eastIndex, SoundSpeed);
 }
 
+/// <summary>
+/// Convert lat long to Unreal coordinates.
+/// Only makes sense if the origin is set (no checking).
+/// </summary>
+/// <param name="Latitude"></param>
+/// <param name="Longitude"></param>
+/// <returns></returns>
+FVector ABathymetry::LatLongToPosition(
+	const float& Latitude, const float& Longitude) const
+{
+	auto ResX = Distance(OriginLatitude, OriginLongitude,
+		OriginLatitude, Longitude);
+	if (Longitude < OriginLongitude) {
+		ResX *= -1.0;
+	}
+
+	auto ResY = Distance(OriginLatitude, OriginLongitude,
+		Latitude, OriginLongitude);
+	if (Latitude < OriginLatitude) {
+		ResY *= -1.0;
+	}
+
+	return FVector(ResX, ResY, 0);
+}
+
+/// <summary>
+/// Convert Unreal coordinates to lat long.
+/// Only makes sense if the origin is set.
+/// Assumes a depth of 0.
+/// </summary>
+/// <param name="Position">unreal coords (meters)</param>
+/// <returns>latitude, longitude, 0</returns>
+FVector ABathymetry::PositionToLatLong(const FVector& Position) const
+{
+	const double latRad = FMath::DegreesToRadians(OriginLatitude);
+	const double lonRad = FMath::DegreesToRadians(OriginLongitude);
+	const double bearingRad = FMath::Atan2(Position.Y, Position.X);
+	double angularDistance =
+		FMath::Sqrt(Position.X * Position.X + Position.Y * Position.Y) /
+		EarthRadius;
+
+	double newLatRad = asin(sin(latRad) * cos(angularDistance) + cos(latRad) * sin(angularDistance) * cos(bearingRad));
+	double newLonRad = lonRad + atan2(sin(bearingRad) * sin(angularDistance) * cos(latRad), cos(angularDistance) - sin(latRad) * sin(newLatRad));
+
+	return FVector(FMath::RadiansToDegrees(newLatRad),
+		FMath::RadiansToDegrees(newLonRad), 0);
+}
 
 /// <summary>
 /// Extra initialization.
 /// </summary>
 void ABathymetry::Init()
 {}
-
 
 /// <summary>
 /// Estimate the distance between these two points on Earth.
@@ -232,7 +282,6 @@ double ABathymetry::Distance(double latitud1, double longitud1,
 	haversine = (pow(sin((1.0 / 2) * (latitud2 - latitud1)), 2)) + 
 		((cos(latitud1)) * (cos(latitud2)) * (pow(sin((1.0 / 2) * (longitud2 - longitud1)), 2)));
 	temp = 2 * asin(FMath::Min(1.0, FMath::Sqrt(haversine)));
-	const double EarthRadius = 6372797.56085;
 	distancia_puntos = EarthRadius * temp;
 
 	return distancia_puntos;
