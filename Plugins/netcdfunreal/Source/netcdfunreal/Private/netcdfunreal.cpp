@@ -309,13 +309,7 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 	netCDF::NcVar varDepth = remoteFile.getVar("depth");
 	netCDF::NcVar varLatitude = remoteFile.getVar("lat");
 	netCDF::NcVar varLongitude = remoteFile.getVar("lon");
-	netCDF::NcVar varWaterTemperature = remoteFile.getVar("water_temp");
 	netCDF::NcVar varSalinity = remoteFile.getVar("salinity");
-
-	auto end = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> elapsed_seconds = end - start;
-	UE_LOG(LogTemp, Warning, TEXT("Finished loading. Elapsed time %g seconds."),
-		elapsed_seconds.count());
 
 	int NumberSamples = (TimeIndexHigh - TimeIndexLow + 1) *
 		(DepthIndexHigh - DepthIndexLow + 1) *
@@ -335,10 +329,34 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 	varLongitude.getVar(longitudes.GetData());
 
 	TArray<double> waterTemperatures;
-	HYCOMShortToDoubleWithScale(varWaterTemperature, NumberSamples, waterTemperatures);
+	auto waterTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Starting water download"));
+			netCDF::NcFile remoteFile2(water_column, netCDF::NcFile::read);
+			netCDF::NcVar varWaterTemperature = remoteFile2.getVar("water_temp");
+			HYCOMShortToDoubleWithScale(
+				varWaterTemperature,
+				NumberSamples,
+				waterTemperatures);
+			UE_LOG(LogTemp, Warning, TEXT("Done water download"));
+		}
+	);
 
 	TArray<double> salinities;
-	HYCOMShortToDoubleWithScale(varSalinity, NumberSamples, salinities);
+	auto salinityTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Starting salinity download"));
+			HYCOMShortToDoubleWithScale(varSalinity, NumberSamples, salinities);
+			UE_LOG(LogTemp, Warning, TEXT("Done salinity download"));
+		}
+	);
+
+	UE::Tasks::Wait(TArray{ waterTask, salinityTask });
+
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> elapsed_seconds = end - start;
+	UE_LOG(LogTemp, Warning, TEXT("Finished loading HYCOM. Elapsed time %g seconds."),
+		elapsed_seconds.count());
 
 	SoundSpeedCache.SetNumUninitialized(NumberSamples);
 	TeosSea seaUtilities;
@@ -370,6 +388,7 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 		}
 	}
 
+	SoundSpeed.Insert(SoundSpeedCache, 0);
 	IsSoundSpeedDirty = false;
 	return true;
 }
@@ -430,7 +449,7 @@ bool FnetcdfunrealModule::ReadVariable(
 /// <param name="Converted">modified</param>
 /// <returns>success</returns>
 bool FnetcdfunrealModule::HYCOMShortToDoubleWithScale(
-	const netCDF::NcVar& Source, const size_t& NumberSamples,
+	const netCDF::NcVar& Source, const size_t NumberSamples,
 	TArray<double>& Converted) const {
 
 	const double DefaultSoundSpeed = 1500.0;

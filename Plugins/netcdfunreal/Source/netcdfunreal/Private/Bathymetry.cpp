@@ -6,6 +6,7 @@
 // Sets default values
 ABathymetry::ABathymetry() : OriginLatitude(-1000.0), OriginLongitude(-1000.0)
 {
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 // Called when the game starts or when spawned
@@ -16,6 +17,16 @@ void ABathymetry::BeginPlay()
 	EarthBathymetry = FModuleManager::GetModulePtr<FnetcdfunrealModule>("netcdfunreal");
 
 	Init();
+}
+
+void ABathymetry::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (CheckHYCOM()) {
+		HYCOMDone = false;
+		OnHYCOMDoneEvent.Broadcast();
+	}
 }
 
 /// <summary>
@@ -156,7 +167,8 @@ bool ABathymetry::GetEarthBathymetry (
 
 /// <summary>
 /// Get the sound speed within lat/lon for bellhop.
-/// Formated as 
+/// Formated for bellhop plugin
+/// This just starts the calculation, CheckHYCOM() to check the status. 
 /// </summary>
 /// <param name="North">Degrees latitude of north edge</param>
 /// <param name="East">Degrees longitude (-180,180) of east edge</param>
@@ -165,47 +177,70 @@ bool ABathymetry::GetEarthBathymetry (
 /// <param name="Time">time</param>
 /// <param name="Depth">modified. depth in meters</param>
 /// <param name="Soundspeed">modified. soundspeed in meters per second</param>
-/// <returns>success</returns>
-bool ABathymetry::GetEarthSoundSpeed(const float& North, const float& East,
-	const float& South, const float& West, const FDateTime& Time,
-	TArray<double>& GridX, TArray<double>& GridY,
-	TArray<double>& Depth, TArray<double>& SoundSpeed) const
+void ABathymetry::GetEarthSoundSpeed(const float& North, const float& East,
+	const float& South, const float& West, const FDateTime& Time)
 {
-	FString url = "https://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/ts3z";
-	TArray<double> allLatitude;
-	TArray<double> allLongitude;
-	TArray<double> allTime;
-	EarthBathymetry->LoadHYCOMDepth(url, Depth);
-	EarthBathymetry->LoadHYCOMLatitude(url, allLatitude);
-	EarthBathymetry->LoadHYCOMLongitude(url, allLongitude);
-	EarthBathymetry->LoadHYCOMTime(url, allTime);
-
-	int southIndex = Algo::LowerBound(allLatitude, South);
-	int northIndex = Algo::UpperBound(allLatitude, North);
-	int westIndex = Algo::LowerBound(allLongitude, (West < 0) ? West + 360.0 : West);
-	int eastIndex = Algo::UpperBound(allLongitude, (East < 0) ? East + 360.0 : East);
-	//HACK - The reference time is 2000-01-01 at 00:00:00, or 946713600 unix timestamp
-	double HoursElapsed = (Time - FDateTime::FromUnixTimestamp(946713600)).GetTotalHours();
-	UE_LOGFMT(LogTemp, Warning, "Hours elapsed {0}", HoursElapsed);
-	int timeIndex = Algo::UpperBound(allTime, HoursElapsed);
+	if (HYCOMDone) {
+		ErrorMessage("Warning (GetEarthSoundSpeed): already downloading hycom."
+			"This should not happen ... ignoring.");
+		return;
+	}
 
 	if (OriginLatitude < -500 || OriginLongitude < -500) {
 		ErrorMessage("Warning (GetEarthSoundSpeed): Origin not set, "
 			"cannot calculate grid ... returning.");
-		return false;
+		return;
 	}
 
-	for (int i = westIndex; i <= eastIndex; ++i) {
-		GridX.Push(Distance(OriginLatitude, OriginLongitude,
-			OriginLatitude, allLongitude[i]));
-	}
-	for (int i = southIndex; i <= northIndex; ++i) {
-		GridY.Push(Distance(OriginLatitude, OriginLongitude,
-			allLatitude[i], OriginLongitude));
-	}
+	HYCOMDone = false;
+	UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]
+		{
+			FString url = "https://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/ts3z";
+			TArray<double> allLatitude;
+			TArray<double> allLongitude;
+			TArray<double> allTime;
+			EarthBathymetry->LoadHYCOMDepth(url, HexDepth);
+			EarthBathymetry->LoadHYCOMLatitude(url, allLatitude);
+			EarthBathymetry->LoadHYCOMLongitude(url, allLongitude);
+			EarthBathymetry->LoadHYCOMTime(url, allTime);
 
-	return EarthBathymetry->LoadHYCOMSoundSpeed(url, timeIndex, timeIndex, 0, 39,
-		southIndex, northIndex, westIndex, eastIndex, SoundSpeed);
+			int southIndex = Algo::LowerBound(allLatitude, South);
+			int northIndex = Algo::UpperBound(allLatitude, North);
+			int westIndex = Algo::LowerBound(allLongitude, (West < 0) ? West + 360.0 : West);
+			int eastIndex = Algo::UpperBound(allLongitude, (East < 0) ? East + 360.0 : East);
+			//HACK - The reference time is 2000-01-01 at 00:00:00, or 946713600 unix timestamp
+			double HoursElapsed = (Time - FDateTime::FromUnixTimestamp(946713600)).GetTotalHours();
+			UE_LOGFMT(LogTemp, Warning, "Hours elapsed {0}", HoursElapsed);
+			int timeIndex = Algo::UpperBound(allTime, HoursElapsed);
+
+			HexGridX.Empty();
+			for (int i = westIndex; i <= eastIndex; ++i) {
+				HexGridX.Push(Distance(OriginLatitude, OriginLongitude,
+					OriginLatitude, allLongitude[i]));
+			}
+			HexGridY.Empty();
+			for (int i = southIndex; i <= northIndex; ++i) {
+				HexGridY.Push(Distance(OriginLatitude, OriginLongitude,
+					allLatitude[i], OriginLongitude));
+			}
+
+			HexSoundSpeed.Empty();
+			EarthBathymetry->LoadHYCOMSoundSpeed(url, timeIndex, timeIndex, 0, 39,
+				southIndex, northIndex, westIndex, eastIndex, HexSoundSpeed);
+
+			HYCOMDone = true;
+		}
+	);
+}
+
+/// <summary>
+/// Check if the HYCOM calculation is going.
+/// Threadsafe
+/// </summary>
+/// <returns>Is hycom done?</returns>
+bool ABathymetry::CheckHYCOM() const
+{
+	return HYCOMDone;
 }
 
 /// <summary>
