@@ -408,8 +408,6 @@ void FbellhopModule::SetupDefaults(const bool& O3D, const bool& R3D)
 		{
 			bhc::setup(BellhopInitializaiton, x.first, x.second);
 		}, params);
-
-	MarkBellhopRun(true);
 }
 
 
@@ -1047,8 +1045,6 @@ void FbellhopModule::SetSourceDepth(const int& sourceID, const float& z)
 		std::visit([&](auto& x)
 			{
 				x.first.Pos->Sz[sourceID] = z;
-				bhc::run(x.first, x.second);
-				UpdateAllRays();
 			}, params);
 	}
 }
@@ -1111,16 +1107,13 @@ FbellhopModule::SetSourcePosition(const int& sourceID, const FVector& position)
 		x.first.Pos->Sx[sourceID] = position.X;
 		x.first.Pos->Sy[sourceID] = position.Y;
 		x.first.Pos->Sz[sourceID] = position.Z;
-		bhc::run(x.first, x.second);
 	}
 	else {
 		std::visit([&](auto& x)
 			{
 				x.first.Pos->Sz[sourceID] = position.Z;
-				bhc::run(x.first, x.second);
 			}, params);
 	}
-	UpdateAllRays();
 }
 
 /// <summary>
@@ -1187,9 +1180,6 @@ void FbellhopModule::SetSoundSpeedProfile(const TArray<FVector2D>& InSoundSpeedP
 				x.first.ssp->alphaI[i] = 0.0;
 			}
 			x.first.ssp->dirty = true;
-
-			bhc::run(x.first, x.second);
-			UpdateAllRays();
 		}, params);
 }
 
@@ -1481,13 +1471,7 @@ void FbellhopModule::SetRayMode()
 {
 	std::visit([&](auto& x)
 		{
-			bool bRecalc = x.first.Beam->RunType[0] != 'R';
 			x.first.Beam->RunType[0] = 'R';
-			if (bRecalc)
-			{
-				bhc::run(x.first, x.second);
-				UpdateAllRays();
-			}
 		}, params);
 }
 
@@ -1512,12 +1496,7 @@ void FbellhopModule::SetTransmissionLossMode(const TransmissionLossMode& tl)
 {
 	std::visit([&](auto& x)
 		{
-			bool bRecalc = x.first.Beam->RunType[0] != static_cast<char>(tl);
 			x.first.Beam->RunType[0] = static_cast<char>(tl);
-			if (bRecalc)
-			{
-				bhc::run(x.first, x.second);
-			}
 		}, params);
 }
 
@@ -1531,12 +1510,7 @@ void FbellhopModule::SetBeamMode(const BeamMode& b)
 {
 	std::visit([&](auto& x)
 		{
-			bool bRecalc = x.first.Beam->RunType[1] != static_cast<char>(b);
 			x.first.Beam->RunType[1] = static_cast<char>(b);
-			if (bRecalc)
-			{
-				bhc::run(x.first, x.second);
-			}
 		}, params);
 }
 
