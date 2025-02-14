@@ -55,6 +55,7 @@ public:
 	FString GetBellhopDirectory();
 	FString GetBellhopEnvironmentDirectory();
 	bool IsBellhopReady();
+	bool IsBellhopSetup();
 	bool IsBellhopRun() const { return rayReady; }
 	void MarkBellhopRun(const bool& State);
 
@@ -179,4 +180,5 @@ public:
 	bool recalculateRays;
 	bool working;
 	bool rayReady;
+	bool IsSetup = false;
 };
