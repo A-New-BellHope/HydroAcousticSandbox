@@ -70,11 +70,12 @@ void FbellhopModule::StartupModule()
 
 void FbellhopModule::ShutdownModule()
 {
-	if (IsBellhopRun()) {
+	if (IsBellhopSetup()) {
 		std::visit([](auto& x)
 			{
 				bhc::finalize(x.first, x.second);
 			}, params);
+		IsSetup = false;
 	}
 
 	FPlatformProcess::FreeDllHandle(BellhopLibraryHandle);
@@ -82,9 +83,24 @@ void FbellhopModule::ShutdownModule()
 	BellhopLibraryHandle = nullptr;
 }
 
+/// <summary>
+/// Check if the library loaded ok.
+/// </summary>
+/// <returns>success</returns>
 bool FbellhopModule::IsBellhopReady()
 {
 	return (bool)BellhopLibraryHandle;
+}
+
+/// <summary>
+/// Check if bellhop's setup has been called.
+/// If it's not setup, then it's been finalized and there may
+///   not be any memory allocated.
+/// </summary>
+/// <returns>success</returns>
+bool FbellhopModule::IsBellhopSetup()
+{
+	return IsSetup;
 }
 
 void FbellhopModule::MarkBellhopRun(const bool& State)
@@ -310,6 +326,7 @@ int FbellhopModule::RunBellhopFile(FString fname, bool O3D, bool R3D) {
 				bhc::finalize(x.first, x.second);
 			}, params);
 		recalculateRays = true;
+		IsSetup = false;
 		UE_LOG(LogTemp, Warning, TEXT("Finalized bellhop."));
 	}
 
@@ -348,6 +365,7 @@ int FbellhopModule::RunBellhopFile(FString fname, bool O3D, bool R3D) {
 				auto FNameConvert = StringCast<ANSICHAR>(*fname);
 				BellhopInitializaiton.FileRoot = FNameConvert.Get();
 				bhc::setup(BellhopInitializaiton, x.first, x.second);
+				IsSetup = true;
 			}, params);
 		std::visit([](auto& x)
 			{
@@ -381,11 +399,12 @@ void FbellhopModule::SetupDefaults(const bool& O3D, const bool& R3D)
 		return;
 	}
 
-	if (IsBellhopRun()) {
+	if (IsBellhopSetup()) {
 		std::visit([](auto& x)
 			{
 				bhc::finalize(x.first, x.second);
 			}, params);
+		IsSetup = false;
 	}
 
 	MarkBellhopRun(false);
@@ -407,6 +426,7 @@ void FbellhopModule::SetupDefaults(const bool& O3D, const bool& R3D)
 	std::visit([&](auto& x)
 		{
 			bhc::setup(BellhopInitializaiton, x.first, x.second);
+			IsSetup = true;
 		}, params);
 }
 
@@ -1212,8 +1232,8 @@ void FbellhopModule::Set1DSoundSpeedProfile(const TArray<FVector2D>& InSoundSpee
 ///    must be monotonically increasing.
 /// SoundSpeeds goes in order x, y, z as (x*Ny+y)*Nz+z
 /// </summary>
-/// <param name="GridX">km</param>
-/// <param name="GridY">km</param>
+/// <param name="GridX">m</param>
+/// <param name="GridY">m</param>
 /// <param name="Depth">meters</param>
 /// <param name="SoundSpeeds">m/s</param>
 void FbellhopModule::SetHexahedralSpeedProfile(const TArray<double>& GridX,
@@ -1245,7 +1265,7 @@ void FbellhopModule::SetHexahedralSpeedProfile(const TArray<double>& GridX,
 		}
 		x.first.Bdry->Top.hs.Depth = x.first.ssp->z[0];
 		x.first.Bdry->Bot.hs.Depth = x.first.ssp->z[Depth.Num() - 1];
-		x.first.ssp->rangeInKm = true;
+		x.first.ssp->rangeInKm = false;
 	}
 	else if (std::holds_alternative<RunTypeNx2D>(params))
 	{
@@ -1536,7 +1556,7 @@ bool FbellhopModule::IsTransmissionLossMode()
 /// <param name="sourceID">array access. Will create sources less than this.</param>
 /// <returns>did an error occur?</returns>
 bool FbellhopModule::CheckSourceDepthExists(const int& sourceID) {
-	if (!IsBellhopRun()) {
+	if (!IsBellhopSetup()) {
 		FString m("FbellhopModule::CheckSourceDepthExists: "
 			"No bellhop data available ... ignoring");
 		UE_LOG(LogTemp, Error, TEXT("%s"), *m);
