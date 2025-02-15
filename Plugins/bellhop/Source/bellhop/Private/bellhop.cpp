@@ -443,14 +443,17 @@ void FbellhopModule::RunBellhop()
 		return;
 	}
 
-	MarkBellhopRun(false);
-	working = true;
-
 	std::visit([&](auto& x)
-	{
-		bhc::run(x.first, x.second);
-		UpdateAllRays();
-	}, params);
+		{
+			bhc::echo(x.first);
+			try {
+				bhc::run(x.first, x.second);
+			}
+			catch (...) {
+				LogBellhop("Error in bhc::run. Check the log. ... continuing");
+			}
+			UpdateAllRays();
+		}, params);
 
 	working = false;
 	MarkBellhopRun(true);
@@ -1127,6 +1130,7 @@ FbellhopModule::SetSourcePosition(const int& sourceID, const FVector& position)
 		x.first.Pos->Sx[sourceID] = position.X;
 		x.first.Pos->Sy[sourceID] = position.Y;
 		x.first.Pos->Sz[sourceID] = position.Z;
+		x.first.Pos->SxSyInKm = false;
 	}
 	else {
 		std::visit([&](auto& x)

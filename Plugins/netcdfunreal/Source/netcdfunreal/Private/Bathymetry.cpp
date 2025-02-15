@@ -214,14 +214,15 @@ void ABathymetry::GetEarthSoundSpeed(const float& North, const float& East,
 			int timeIndex = Algo::UpperBound(allTime, HoursElapsed);
 
 			HexGridX.Empty();
-			for (int i = westIndex; i <= eastIndex; ++i) {
-				HexGridX.Push(Distance(OriginLatitude, OriginLongitude,
-					OriginLatitude, allLongitude[i]));
-			}
-			HexGridY.Empty();
 			for (int i = southIndex; i <= northIndex; ++i) {
-				HexGridY.Push(Distance(OriginLatitude, OriginLongitude,
+				HexGridX.Push(Distance(OriginLatitude, OriginLongitude,
 					allLatitude[i], OriginLongitude));
+			}
+
+			HexGridY.Empty();
+			for (int i = westIndex; i <= eastIndex; ++i) {
+				HexGridY.Push(Distance(OriginLatitude, OriginLongitude,
+					OriginLatitude, allLongitude[i]));
 			}
 
 			HexSoundSpeed.Empty();
