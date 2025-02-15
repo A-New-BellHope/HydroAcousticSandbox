@@ -287,8 +287,8 @@ bool ABellhopController::SetSingleSoundSpeed(const TArray<double>& Depth,
 /// Set hexahedral sound speed.
 /// Intended for HYCOM data from netcdf.
 /// </summary>
-/// <param name="GridX">km</param>
-/// <param name="GridY">km</param>
+/// <param name="GridX">m</param>
+/// <param name="GridY">m</param>
 /// <param name="Depth">meters</param>
 /// <param name="SoundSpeed">m/s</param>
 /// <returns>success</returns>
