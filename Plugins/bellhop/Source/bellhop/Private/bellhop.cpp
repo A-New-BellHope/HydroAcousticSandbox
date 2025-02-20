@@ -1254,14 +1254,16 @@ void FbellhopModule::SetHexahedralSpeedProfile(const TArray<double>& GridX,
 		x.first.ssp->Ny = GridY.Num();
 		x.first.ssp->Nz = Depth.Num();
 		int i = 0;
-		for (int ix = 0; ix < GridX.Num(); ++ix) {
-			for (int iy = 0; iy < GridY.Num(); ++iy) {
-				for (int iz = 0; iz < Depth.Num(); ++iz) {
+		for (int iz = 0; iz < Depth.Num(); ++iz) {
+			for (int ix = 0; ix < GridX.Num(); ++ix) {
+				for (int iy = 0; iy < GridY.Num(); ++iy) {
 					x.first.ssp->Seg.x[ix] = GridX[ix];
 					x.first.ssp->Seg.y[iy] = GridY[iy];
 					x.first.ssp->Seg.z[iz] = Depth[iz];
 					x.first.ssp->z[iz] = Depth[iz];
 					x.first.ssp->cMat[(ix * GridY.Num() + iy) * Depth.Num() + iz] =
+						//1500.0 * (iz - iy) * (iz - iy);
+						//1500.0 * (iz - ix) * (iz - ix);
 						SoundSpeeds[i];
 					++i;
 				}
