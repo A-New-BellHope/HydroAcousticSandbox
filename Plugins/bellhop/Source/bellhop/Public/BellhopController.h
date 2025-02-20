@@ -75,6 +75,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	void SetRayMode();
 
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	bool CheckSource(const FVector& Location);
+
 private:
 	//helpers
 	void Init();
