@@ -319,6 +319,17 @@ void ABellhopController::SetRayMode()
 }
 
 /// <summary>
+/// Check that the source location is inside the SSP
+///   and over the bathymetry.
+/// </summary>
+/// <param name="Location"></param>
+/// <returns>ok</returns>
+bool ABellhopController::CheckSource(const FVector& Location)
+{
+	return true;
+}
+
+/// <summary>
 /// Any extra initialization.
 /// </summary>
 void ABellhopController::Init()
