@@ -356,8 +356,7 @@ void ABellhopController::WriteBellhopEnvironment(const FString& BaseName,
 
 	FString LocalDirectory = Directory;
 	if (Directory.IsEmpty()) {
-		UE_LOG(LogTemp, Warning, TEXT("Empty save directory. Defaulting to c:\\bellhop\\"));
-		LocalDirectory = "c:\\bellhop\\";
+		UE_LOG(LogTemp, Warning, TEXT("Empty save directory. Will save relative to this."));
 	}
 
 	FString LocalBase = BaseName;
@@ -369,7 +368,8 @@ void ABellhopController::WriteBellhopEnvironment(const FString& BaseName,
 	auto envWriteTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Starting env write"));
-			Bellhop->WriteEnvironment(LocalDirectory + LocalBase);
+			FString FileRoot = FPaths::Combine(LocalDirectory, LocalBase);
+			Bellhop->WriteEnvironment(FileRoot);
 			UE_LOG(LogTemp, Warning, TEXT("Done env write"));
 			EnvfileRunning = false;
 			OnEnvfileDoneEvent.Broadcast();

@@ -119,8 +119,10 @@ bool FbellhopModule::WriteEnvironment(const FString& FileRoot)
 	if (IsBellhopSetup()) {
 		std::visit([&](auto& x)
 			{
-				auto fname = StringCast<ANSICHAR>(*FileRoot).Get();
-				res = bhc::writeenv(x.first, fname);
+				//UE_LOG(LogTemp, Warning, TEXT("%s"), *FileRoot);
+				//auto fname = StringCast<ANSICHAR>(*FileRoot).Get();
+				//LogBellhop(fname);
+				res = bhc::writeenv(x.first, "c:\\bellhop\\gocubs");
 			}, params);
 	}
 	return res;
