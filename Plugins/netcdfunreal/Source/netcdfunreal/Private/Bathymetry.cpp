@@ -105,10 +105,12 @@ bool ABathymetry::LoadEarthFile(const FString& Filename)
 /// <param name="South">latitude</param>
 /// <param name="West">longitude</param>
 /// <param name="Depth">modified. depth in meters</param>
-/// <returns>success</returns>
+/// <returns>Bounds in compass order, North, East, South, West</returns>
 bool ABathymetry::GetEarthBathymetry (
-	const float& North, const float& East,
-	const float& South, const float& West,
+	const double& North, const double& East,
+	const double& South, const double& West,
+	double& ActualNorth, double& ActualEast,
+	double& ActualSouth, double& ActualWest,
 	TArray<double>& GridX, TArray<double>& GridY,
 	TArray<double>& Depth) const
 {
@@ -122,10 +124,14 @@ bool ABathymetry::GetEarthBathymetry (
 		return false;
 	}
 
-	const size_t indexLonLow = Algo::LowerBound(allX, West);
+	const size_t indexLonLow = Algo::UpperBound(allX, West) - 1;
 	const size_t indexLonHigh = Algo::UpperBound(allX, East);
-	const size_t indexLatLow = Algo::LowerBound(allY, South);
+	const size_t indexLatLow = Algo::UpperBound(allY, South) - 1;
 	const size_t indexLatHigh = Algo::UpperBound(allY, North);
+	ActualWest = allX[indexLonLow];
+	ActualEast = allX[indexLonHigh];
+	ActualSouth = allY[indexLatLow];
+	ActualNorth = allY[indexLatHigh];
 
 	if (indexLatLow >= indexLatHigh || indexLonLow >= indexLonHigh) {
 		ErrorMessage("Error: ranges are too small or in the wrong order."
@@ -177,8 +183,8 @@ bool ABathymetry::GetEarthBathymetry (
 /// <param name="Time">time</param>
 /// <param name="Depth">modified. depth in meters</param>
 /// <param name="Soundspeed">modified. soundspeed in meters per second</param>
-void ABathymetry::GetEarthSoundSpeed(const float& North, const float& East,
-	const float& South, const float& West, const FDateTime& Time)
+void ABathymetry::GetEarthSoundSpeed(const double& North, const double& East,
+	const double& South, const double& West, const FDateTime& Time)
 {
 	if (HYCOMDone) {
 		ErrorMessage("Warning (GetEarthSoundSpeed): already downloading hycom."
@@ -192,6 +198,10 @@ void ABathymetry::GetEarthSoundSpeed(const float& North, const float& East,
 		return;
 	}
 
+	// Switch to HYCOM's 'degrees east of 0' convention
+	const double HOriginLongitude = 
+		(OriginLongitude < 0) ? OriginLongitude + 360.0 : OriginLongitude;
+
 	HYCOMDone = false;
 	UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]
 		{
@@ -204,10 +214,12 @@ void ABathymetry::GetEarthSoundSpeed(const float& North, const float& East,
 			EarthBathymetry->LoadHYCOMLongitude(url, allLongitude);
 			EarthBathymetry->LoadHYCOMTime(url, allTime);
 
-			int southIndex = Algo::LowerBound(allLatitude, South);
+			int southIndex = Algo::UpperBound(allLatitude, South) - 1;
 			int northIndex = Algo::UpperBound(allLatitude, North);
-			int westIndex = Algo::LowerBound(allLongitude, (West < 0) ? West + 360.0 : West);
-			int eastIndex = Algo::UpperBound(allLongitude, (East < 0) ? East + 360.0 : East);
+			int westIndex =
+				Algo::UpperBound(allLongitude, (West < 0) ? West + 360.0 : West) - 1;
+			int eastIndex =
+				Algo::UpperBound(allLongitude, (East < 0) ? East + 360.0 : East);
 			//HACK - The reference time is 2000-01-01 at 00:00:00, or 946713600 unix timestamp
 			double HoursElapsed = (Time - FDateTime::FromUnixTimestamp(946713600)).GetTotalHours();
 			UE_LOGFMT(LogTemp, Warning, "Hours elapsed {0}", HoursElapsed);
@@ -215,14 +227,23 @@ void ABathymetry::GetEarthSoundSpeed(const float& North, const float& East,
 
 			HexGridX.Empty();
 			for (int i = southIndex; i <= northIndex; ++i) {
-				HexGridX.Push(Distance(OriginLatitude, OriginLongitude,
-					allLatitude[i], OriginLongitude));
+				HexGridX.Push(
+					((allLatitude[i] < OriginLatitude) ? -1.0 : 1.0) *
+					Distance(OriginLatitude, OriginLongitude,
+						allLatitude[i], OriginLongitude)
+				);
 			}
 
 			HexGridY.Empty();
 			for (int i = westIndex; i <= eastIndex; ++i) {
-				HexGridY.Push(Distance(OriginLatitude, OriginLongitude,
-					OriginLatitude, allLongitude[i]));
+				const double lon =
+					(allLongitude[i] > 180.0) ?
+					(allLongitude[i] - 360) : allLongitude[i];
+				HexGridY.Push(
+					((allLongitude[i] < HOriginLongitude) ? -1.0 : 1.0) *
+					Distance(OriginLatitude, OriginLongitude,
+						OriginLatitude, lon)
+				);
 			}
 
 			HexSoundSpeed.Empty();
@@ -252,7 +273,7 @@ bool ABathymetry::CheckHYCOM() const
 /// <param name="Longitude"></param>
 /// <returns></returns>
 FVector ABathymetry::LatLongToPosition(
-	const float& Latitude, const float& Longitude) const
+	const double& Latitude, const double& Longitude) const
 {
 	auto ResX = Distance(OriginLatitude, OriginLongitude,
 		OriginLatitude, Longitude);
