@@ -329,6 +329,24 @@ bool ABellhopController::CheckSource(const FVector& Location)
 	return true;
 }
 
+bool ABellhopController::WriteBellhopEnvironment(const FString& BaseName,
+	const FString& Directory) const
+{
+	FString LocalDirectory = Directory;
+	if (Directory.IsEmpty()) {
+		UE_LOG(LogTemp, Warning, TEXT("Empty save directory. Defaulting to c:\\bellhop\\"));
+		LocalDirectory = "c:\\bellhop\\";
+	}
+
+	FString LocalBase = BaseName;
+	if (BaseName.IsEmpty()) {
+		UE_LOG(LogTemp, Warning, TEXT("Empty base name. Defaulting to temp"));
+		LocalBase = "temp";
+	}
+
+	return Bellhop->WriteEnvironment(LocalDirectory + LocalBase);
+}
+
 /// <summary>
 /// Any extra initialization.
 /// </summary>
