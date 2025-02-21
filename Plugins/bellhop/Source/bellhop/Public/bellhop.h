@@ -58,7 +58,7 @@ public:
 	bool IsBellhopSetup();
 	bool IsBellhopRun() const { return rayReady; }
 	void MarkBellhopRun(const bool& State);
-	bool WriteEnvironment(const FString& FileRoot);
+	bool WriteEnvironment(FString FileRoot);
 
 	int GetNRays() const;
 	int GetMaxPoints();
