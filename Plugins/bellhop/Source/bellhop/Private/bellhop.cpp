@@ -108,6 +108,24 @@ void FbellhopModule::MarkBellhopRun(const bool& State)
 	rayReady = State;
 }
 
+/// <summary>
+/// Write out the environment data for external use.
+/// </summary>
+/// <param name="FileRoot">Fully qualified name, without any extension</param>
+/// <returns></returns>
+bool FbellhopModule::WriteEnvironment(FString FileRoot)
+{
+	bool res = false;
+	if (IsBellhopSetup()) {
+		std::visit([&](auto& x)
+			{
+				auto fname = StringCast<ANSICHAR>(*FileRoot).Get();
+				res = bhc::writeenv(x.first, fname);
+			}, params);
+	}
+	return res;
+}
+
 TArray<FVector> FbellhopModule::GetBoundaryPoints()
 {
 	TArray<FVector> ret;

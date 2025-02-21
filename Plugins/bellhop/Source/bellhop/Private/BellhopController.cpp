@@ -8,7 +8,7 @@ ABellhopController::ABellhopController()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
+	EnvfileRunning = false;
 }
 
 // Called when the game starts or when spawned
@@ -25,6 +25,14 @@ void ABellhopController::BeginPlay()
 void ABellhopController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
+
+/// <summary>
+/// Check the background file status.
+/// </summary>
+/// <returns>Is file writing?</returns>
+bool ABellhopController::IsEnvfileRunning() const {
+	return EnvfileRunning;
 }
 
 /// <summary>
@@ -330,12 +338,51 @@ bool ABellhopController::CheckSource(const FVector& Location)
 }
 
 /// <summary>
+/// Write the env files and any supporting files for external bellhop.
+/// TODO: should have more checking, but relying on the directory picker.
+/// TODO: this writes on the background, but there will be problems if
+///    someone tries to access Bellhop during the write.
+/// </summary>
+/// <param name="BaseName">usually short, e.g. Munk</param>
+/// <param name="Directory">directory to write.</param>
+void ABellhopController::WriteBellhopEnvironment(FString BaseName,
+	FString Directory)
+{
+	if (IsEnvfileRunning()) {
+		UE_LOG(LogTemp, Warning, TEXT("Already saving file ... returning"));
+		return;
+	}
+	EnvfileRunning = true;
+
+	if (Directory.IsEmpty()) {
+		UE_LOG(LogTemp, Warning, TEXT("Empty save directory. Will save in c:\\bellhop\\."));
+		Directory += TEXT("c:/bellhop/");
+	}
+
+	if (BaseName.IsEmpty()) {
+		UE_LOG(LogTemp, Warning, TEXT("Empty base name. Defaulting to temp"));
+		BaseName += TEXT("temp");
+	}
+
+	EnvFileName = Directory + BaseName;
+
+	auto envWriteTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Starting env write to %s"), *EnvFileName);
+			Bellhop->WriteEnvironment(EnvFileName);
+			UE_LOG(LogTemp, Warning, TEXT("Done env write"));
+			EnvfileRunning = false;
+			OnEnvfileDoneEvent.Broadcast();
+		}
+	);
+}
+
+/// <summary>
 /// Any extra initialization.
 /// </summary>
 void ABellhopController::Init()
-{
+{}
 
-}
 /// <summary>
 /// Check if there's a file at FileName.
 /// Could be put in a general utility file, if we ever make one.
