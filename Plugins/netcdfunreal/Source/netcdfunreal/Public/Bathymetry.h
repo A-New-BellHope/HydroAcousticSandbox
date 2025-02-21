@@ -40,17 +40,19 @@ public:
 		const double& InOriginLongitude);
 
 	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
-	bool GetEarthBathymetry(const float& North, const float& East,
-		const float& South, const float& West,
+	bool GetEarthBathymetry(const double& North, const double& East,
+		const double& South, const double& West,
+		double& ActualNorth, double& ActualEast,
+		double& ActualSouth, double& ActualWest,
 		TArray<double>& GridX, TArray<double>& GridY,
 		TArray<double>& Depth) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
-	void GetEarthSoundSpeed(const float& North, const float& East,
-		const float& South, const float& West, const FDateTime& Time);
+	void GetEarthSoundSpeed(const double& North, const double& East,
+		const double& South, const double& West, const FDateTime& Time);
 
 	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
-	FVector LatLongToPosition(const float& Latitude, const float& Longitude) const;
+	FVector LatLongToPosition(const double& Latitude, const double& Longitude) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
 	FVector PositionToLatLong(const FVector& Position) const;
