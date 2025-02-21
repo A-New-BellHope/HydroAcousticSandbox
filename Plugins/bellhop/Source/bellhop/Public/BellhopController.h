@@ -78,6 +78,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	bool CheckSource(const FVector& Location);
 
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	bool WriteBellhopEnvironment(const FString& BaseName,
+		const FString& Directory) const;
+
 private:
 	//helpers
 	void Init();
