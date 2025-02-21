@@ -159,12 +159,14 @@ bool ABathymetry::GetEarthBathymetry (
 	//TODO: extra copying and allocation (probably not very large)
 	GridX.Empty();
 	for (size_t i = indexLatLow; i < indexLatHigh; ++i) {
-		GridX.Push(Distance(OriginLatitude, OriginLongitude,
+		double sign = (allY[i] < OriginLatitude) ? -1.0 : 1.0;
+		GridX.Push(sign * Distance(OriginLatitude, OriginLongitude,
 			allY[i], OriginLongitude));
 	}
 	GridY.Empty();
 	for (size_t i = indexLonLow; i < indexLonHigh; ++i) {
-		GridY.Push(Distance(OriginLatitude, OriginLongitude,
+		double sign = (allX[i] < OriginLongitude) ? -1.0 : 1.0;
+		GridY.Push(sign * Distance(OriginLatitude, OriginLongitude,
 			OriginLatitude, allX[i]));
 	}
 
@@ -227,20 +229,19 @@ void ABathymetry::GetEarthSoundSpeed(const double& North, const double& East,
 
 			HexGridX.Empty();
 			for (int i = southIndex; i <= northIndex; ++i) {
-				HexGridX.Push(
-					((allLatitude[i] < OriginLatitude) ? -1.0 : 1.0) *
-					Distance(OriginLatitude, OriginLongitude,
-						allLatitude[i], OriginLongitude)
+				double sign = (allLatitude[i] < OriginLatitude) ? -1.0 : 1.0;
+				HexGridX.Push(sign * Distance(OriginLatitude, OriginLongitude,
+					allLatitude[i], OriginLongitude)
 				);
 			}
 
 			HexGridY.Empty();
 			for (int i = westIndex; i <= eastIndex; ++i) {
-				const double lon =
+				double lon =
 					(allLongitude[i] > 180.0) ?
 					(allLongitude[i] - 360) : allLongitude[i];
-				HexGridY.Push(
-					((allLongitude[i] < HOriginLongitude) ? -1.0 : 1.0) *
+				double sign = (lon < OriginLongitude) ? -1.0 : 1.0;
+				HexGridY.Push(sign *
 					Distance(OriginLatitude, OriginLongitude,
 						OriginLatitude, lon)
 				);
