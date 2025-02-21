@@ -82,8 +82,7 @@ public:
 	bool CheckSource(const FVector& Location);
 
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
-	void WriteBellhopEnvironment(const FString& BaseName,
-		const FString& Directory);
+	void WriteBellhopEnvironment(FString BaseName, FString Directory);
 
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	bool IsEnvfileRunning() const;
@@ -101,4 +100,5 @@ private:
 	FbellhopModule* Bellhop;
 
 	FThreadSafeBool EnvfileRunning;
+	FString EnvFileName;
 };

@@ -113,16 +113,14 @@ void FbellhopModule::MarkBellhopRun(const bool& State)
 /// </summary>
 /// <param name="FileRoot">Fully qualified name, without any extension</param>
 /// <returns></returns>
-bool FbellhopModule::WriteEnvironment(const FString& FileRoot)
+bool FbellhopModule::WriteEnvironment(FString FileRoot)
 {
 	bool res = false;
 	if (IsBellhopSetup()) {
 		std::visit([&](auto& x)
 			{
-				//UE_LOG(LogTemp, Warning, TEXT("%s"), *FileRoot);
-				//auto fname = StringCast<ANSICHAR>(*FileRoot).Get();
-				//LogBellhop(fname);
-				res = bhc::writeenv(x.first, "c:\\bellhop\\gocubs");
+				auto fname = StringCast<ANSICHAR>(*FileRoot).Get();
+				res = bhc::writeenv(x.first, fname);
 			}, params);
 	}
 	return res;

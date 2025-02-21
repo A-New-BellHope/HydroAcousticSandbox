@@ -345,8 +345,8 @@ bool ABellhopController::CheckSource(const FVector& Location)
 /// </summary>
 /// <param name="BaseName">usually short, e.g. Munk</param>
 /// <param name="Directory">directory to write.</param>
-void ABellhopController::WriteBellhopEnvironment(const FString& BaseName,
-	const FString& Directory)
+void ABellhopController::WriteBellhopEnvironment(FString BaseName,
+	FString Directory)
 {
 	if (IsEnvfileRunning()) {
 		UE_LOG(LogTemp, Warning, TEXT("Already saving file ... returning"));
@@ -354,22 +354,22 @@ void ABellhopController::WriteBellhopEnvironment(const FString& BaseName,
 	}
 	EnvfileRunning = true;
 
-	FString LocalDirectory = Directory;
 	if (Directory.IsEmpty()) {
-		UE_LOG(LogTemp, Warning, TEXT("Empty save directory. Will save relative to this."));
+		UE_LOG(LogTemp, Warning, TEXT("Empty save directory. Will save in c:\\bellhop\\."));
+		Directory += TEXT("c:/bellhop/");
 	}
 
-	FString LocalBase = BaseName;
 	if (BaseName.IsEmpty()) {
 		UE_LOG(LogTemp, Warning, TEXT("Empty base name. Defaulting to temp"));
-		LocalBase = "temp";
+		BaseName += TEXT("temp");
 	}
+
+	EnvFileName = Directory + BaseName;
 
 	auto envWriteTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Starting env write"));
-			FString FileRoot = FPaths::Combine(LocalDirectory, LocalBase);
-			Bellhop->WriteEnvironment(FileRoot);
+			UE_LOG(LogTemp, Warning, TEXT("Starting env write to %s"), *EnvFileName);
+			Bellhop->WriteEnvironment(EnvFileName);
 			UE_LOG(LogTemp, Warning, TEXT("Done env write"));
 			EnvfileRunning = false;
 			OnEnvfileDoneEvent.Broadcast();
