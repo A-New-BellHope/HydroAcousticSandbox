@@ -279,11 +279,6 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 	const int& LongitudeIndexLow, const int& LongitudeIndexHigh,
 	TArray<double>& SoundSpeed)
 {
-	if (!IsSoundSpeedDirty) {
-		SoundSpeed.Insert(SoundSpeedCache, 0);
-		return true;
-	}
-
 	std::string url = TCHAR_TO_UTF8(*DatasetURL);
 	std::string water_column = url + "?depth" +
 		"[" + std::to_string(DepthIndexLow) + ":1:" + std::to_string(DepthIndexHigh) + "]" +
@@ -301,6 +296,11 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 		"[" + std::to_string(DepthIndexLow) + ":1:" + std::to_string(DepthIndexHigh) + "]" +
 		"[" + std::to_string(LatitudeIndexLow) + ":1:" + std::to_string(LatitudeIndexHigh) + "]" +
 		"[" + std::to_string(LongitudeIndexLow) + ":1:" + std::to_string(LongitudeIndexHigh) + "]";
+
+	if (LastURL == water_column) {
+		SoundSpeed.Insert(SoundSpeedCache, 0);
+		return true;
+	}
 
 	UE_LOGFMT(LogTemp, Warning, "Loading net file {0}", water_column.c_str());
 	auto start = std::chrono::high_resolution_clock::now();
@@ -389,7 +389,8 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 	}
 
 	SoundSpeed.Insert(SoundSpeedCache, 0);
-	IsSoundSpeedDirty = false;
+	LastURL = water_column;
+
 	return true;
 }
 
@@ -401,7 +402,7 @@ void FnetcdfunrealModule::MarkAllHYCOMDirty()
 	IsDepthDirty = true;
 	IsLongitudeDirty = true;
 	IsLatitudeDirty = true;
-	IsSoundSpeedDirty = true;
+	LastURL = "";
 }
 
 /// <summary>
