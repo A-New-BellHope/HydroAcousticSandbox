@@ -464,10 +464,7 @@ void FbellhopModule::RunBellhop()
 	std::visit([&](auto& x)
 		{
 			bhc::echo(x.first);
-			try {
-				bhc::run(x.first, x.second);
-			}
-			catch (...) {
+			if (!bhc::run(x.first, x.second)) {
 				LogBellhop("Error in bhc::run. Check the log. ... continuing");
 			}
 			UpdateAllRays();
