@@ -26,7 +26,7 @@ public class netcdfunrealLibrary : ModuleRules
 			PublicDelayLoadDLLs.Add("hdf5_hl.dll");
 			PublicDelayLoadDLLs.Add("libcurl.dll");
 			PublicDelayLoadDLLs.Add("netcdf.dll");
-			PublicDelayLoadDLLs.Add("netcdf-cxx4.dll");
+			//PublicDelayLoadDLLs.Add("netcdf-cxx4.dll");
 			PublicDelayLoadDLLs.Add("pkgconf.dll");
 			PublicDelayLoadDLLs.Add("szip.dll");
 			PublicDelayLoadDLLs.Add("zlib.dll");
@@ -36,10 +36,10 @@ public class netcdfunrealLibrary : ModuleRules
 			RuntimeDependencies.Add("$(PluginDir)/Binaries/ThirdParty/netcdfunrealLibrary/Win64/hdf5_hl.dll");
 			RuntimeDependencies.Add("$(PluginDir)/Binaries/ThirdParty/netcdfunrealLibrary/Win64/libcurl.dll");
 			RuntimeDependencies.Add("$(PluginDir)/Binaries/ThirdParty/netcdfunrealLibrary/Win64/netcdf.dll");
-			RuntimeDependencies.Add("$(PluginDir)/Binaries/ThirdParty/netcdfunrealLibrary/Win64/netcdf-cxx4.dll");
-			RuntimeDependencies.Add("$(PluginDir)/Binaries/ThirdParty/netcdfunrealLibrary/Win64/pkgconf.dll");
+			//RuntimeDependencies.Add("$(PluginDir)/Binaries/ThirdParty/netcdfunrealLibrary/Win64/netcdf-cxx4.dll");
+			RuntimeDependencies.Add("$(PluginDir)/Binaries/ThirdParty/netcdfunrealLibrary/Win64/pkgconf-4.dll");
 			RuntimeDependencies.Add("$(PluginDir)/Binaries/ThirdParty/netcdfunrealLibrary/Win64/szip.dll");
-			RuntimeDependencies.Add("$(PluginDir)/Binaries/ThirdParty/netcdfunrealLibrary/Win64/zlib.dll");
+			RuntimeDependencies.Add("$(PluginDir)/Binaries/ThirdParty/netcdfunrealLibrary/Win64/zlib1.dll");
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {

@@ -8,7 +8,7 @@ ABellhopController::ABellhopController()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
+	EnvfileRunning = false;
 }
 
 // Called when the game starts or when spawned
@@ -25,6 +25,14 @@ void ABellhopController::BeginPlay()
 void ABellhopController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
+
+/// <summary>
+/// Check the background file status.
+/// </summary>
+/// <returns>Is file writing?</returns>
+bool ABellhopController::IsEnvfileRunning() const {
+	return EnvfileRunning;
 }
 
 /// <summary>
@@ -152,10 +160,10 @@ void ABellhopController::MoveSource(const int& Source, const float& X)
 /// <param name="position"></param>
 void ABellhopController::MoveSource3D(const int& Source, const FVector& position)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Disabled moving 3D source for testing ..."));
-	//UE_LOG(LogTemp, Warning, TEXT("Moving 3D source ..."));
-	//Bellhop->SetSourcePosition(Source, position);
-	//UE_LOG(LogTemp, Warning, TEXT("Done moving 3D source."));
+	//UE_LOG(LogTemp, Warning, TEXT("Disabled moving 3D source for testing ..."));
+	UE_LOG(LogTemp, Warning, TEXT("Moving 3D source ..."));
+	Bellhop->SetSourcePosition(Source, FVector(position.X, position.Y, FMath::Abs(position.Z)));
+	UE_LOG(LogTemp, Warning, TEXT("Done moving 3D source."));
 }
 
 /// <summary>
@@ -284,6 +292,24 @@ bool ABellhopController::SetSingleSoundSpeed(const TArray<double>& Depth,
 }
 
 /// <summary>
+/// Set hexahedral sound speed.
+/// Intended for HYCOM data from netcdf.
+/// </summary>
+/// <param name="GridX">m</param>
+/// <param name="GridY">m</param>
+/// <param name="Depth">meters</param>
+/// <param name="SoundSpeed">m/s</param>
+/// <returns>success</returns>
+bool ABellhopController::SetHexahedralSoundSpeed(
+	const TArray<double>& GridX, const TArray<double>& GridY,
+	const TArray<double>& Depth, const TArray<double>& SoundSpeed)
+{
+	Bellhop->SetHexahedralSpeedProfile(GridX, GridY, Depth, SoundSpeed);
+	return true;
+}
+
+
+/// <summary>
 /// Get the sound speed at a single point.
 /// 3D only
 /// </summary>
@@ -301,12 +327,62 @@ void ABellhopController::SetRayMode()
 }
 
 /// <summary>
+/// Check that the source location is inside the SSP
+///   and over the bathymetry.
+/// </summary>
+/// <param name="Location"></param>
+/// <returns>ok</returns>
+bool ABellhopController::CheckSource(const FVector& Location)
+{
+	return true;
+}
+
+/// <summary>
+/// Write the env files and any supporting files for external bellhop.
+/// TODO: should have more checking, but relying on the directory picker.
+/// TODO: this writes on the background, but there will be problems if
+///    someone tries to access Bellhop during the write.
+/// </summary>
+/// <param name="BaseName">usually short, e.g. Munk</param>
+/// <param name="Directory">directory to write.</param>
+void ABellhopController::WriteBellhopEnvironment(FString BaseName,
+	FString Directory)
+{
+	if (IsEnvfileRunning()) {
+		UE_LOG(LogTemp, Warning, TEXT("Already saving file ... returning"));
+		return;
+	}
+	EnvfileRunning = true;
+
+	if (Directory.IsEmpty()) {
+		UE_LOG(LogTemp, Warning, TEXT("Empty save directory. Will save in c:\\bellhop\\."));
+		Directory += TEXT("c:/bellhop/");
+	}
+
+	if (BaseName.IsEmpty()) {
+		UE_LOG(LogTemp, Warning, TEXT("Empty base name. Defaulting to temp"));
+		BaseName += TEXT("temp");
+	}
+
+	EnvFileName = Directory + BaseName;
+
+	auto envWriteTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Starting env write to %s"), *EnvFileName);
+			Bellhop->WriteEnvironment(EnvFileName);
+			UE_LOG(LogTemp, Warning, TEXT("Done env write"));
+			EnvfileRunning = false;
+			OnEnvfileDoneEvent.Broadcast();
+		}
+	);
+}
+
+/// <summary>
 /// Any extra initialization.
 /// </summary>
 void ABellhopController::Init()
-{
+{}
 
-}
 /// <summary>
 /// Check if there's a file at FileName.
 /// Could be put in a general utility file, if we ever make one.

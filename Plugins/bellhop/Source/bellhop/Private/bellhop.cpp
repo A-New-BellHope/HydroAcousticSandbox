@@ -70,11 +70,12 @@ void FbellhopModule::StartupModule()
 
 void FbellhopModule::ShutdownModule()
 {
-	if (IsBellhopRun()) {
+	if (IsBellhopSetup()) {
 		std::visit([](auto& x)
 			{
 				bhc::finalize(x.first, x.second);
 			}, params);
+		IsSetup = false;
 	}
 
 	FPlatformProcess::FreeDllHandle(BellhopLibraryHandle);
@@ -82,14 +83,47 @@ void FbellhopModule::ShutdownModule()
 	BellhopLibraryHandle = nullptr;
 }
 
+/// <summary>
+/// Check if the library loaded ok.
+/// </summary>
+/// <returns>success</returns>
 bool FbellhopModule::IsBellhopReady()
 {
 	return (bool)BellhopLibraryHandle;
 }
 
+/// <summary>
+/// Check if bellhop's setup has been called.
+/// If it's not setup, then it's been finalized and there may
+///   not be any memory allocated.
+/// </summary>
+/// <returns>success</returns>
+bool FbellhopModule::IsBellhopSetup()
+{
+	return IsSetup;
+}
+
 void FbellhopModule::MarkBellhopRun(const bool& State)
 { 
 	rayReady = State;
+}
+
+/// <summary>
+/// Write out the environment data for external use.
+/// </summary>
+/// <param name="FileRoot">Fully qualified name, without any extension</param>
+/// <returns></returns>
+bool FbellhopModule::WriteEnvironment(FString FileRoot)
+{
+	bool res = false;
+	if (IsBellhopSetup()) {
+		std::visit([&](auto& x)
+			{
+				auto fname = StringCast<ANSICHAR>(*FileRoot).Get();
+				res = bhc::writeenv(x.first, fname);
+			}, params);
+	}
+	return res;
 }
 
 TArray<FVector> FbellhopModule::GetBoundaryPoints()
@@ -310,6 +344,7 @@ int FbellhopModule::RunBellhopFile(FString fname, bool O3D, bool R3D) {
 				bhc::finalize(x.first, x.second);
 			}, params);
 		recalculateRays = true;
+		IsSetup = false;
 		UE_LOG(LogTemp, Warning, TEXT("Finalized bellhop."));
 	}
 
@@ -348,6 +383,7 @@ int FbellhopModule::RunBellhopFile(FString fname, bool O3D, bool R3D) {
 				auto FNameConvert = StringCast<ANSICHAR>(*fname);
 				BellhopInitializaiton.FileRoot = FNameConvert.Get();
 				bhc::setup(BellhopInitializaiton, x.first, x.second);
+				IsSetup = true;
 			}, params);
 		std::visit([](auto& x)
 			{
@@ -381,11 +417,12 @@ void FbellhopModule::SetupDefaults(const bool& O3D, const bool& R3D)
 		return;
 	}
 
-	if (IsBellhopRun()) {
+	if (IsBellhopSetup()) {
 		std::visit([](auto& x)
 			{
 				bhc::finalize(x.first, x.second);
 			}, params);
+		IsSetup = false;
 	}
 
 	MarkBellhopRun(false);
@@ -407,9 +444,8 @@ void FbellhopModule::SetupDefaults(const bool& O3D, const bool& R3D)
 	std::visit([&](auto& x)
 		{
 			bhc::setup(BellhopInitializaiton, x.first, x.second);
+			IsSetup = true;
 		}, params);
-
-	MarkBellhopRun(true);
 }
 
 
@@ -425,14 +461,14 @@ void FbellhopModule::RunBellhop()
 		return;
 	}
 
-	MarkBellhopRun(false);
-	working = true;
-
 	std::visit([&](auto& x)
-	{
-		bhc::run(x.first, x.second);
-		UpdateAllRays();
-	}, params);
+		{
+			bhc::echo(x.first);
+			if (!bhc::run(x.first, x.second)) {
+				LogBellhop("Error in bhc::run. Check the log. ... continuing");
+			}
+			UpdateAllRays();
+		}, params);
 
 	working = false;
 	MarkBellhopRun(true);
@@ -1047,8 +1083,6 @@ void FbellhopModule::SetSourceDepth(const int& sourceID, const float& z)
 		std::visit([&](auto& x)
 			{
 				x.first.Pos->Sz[sourceID] = z;
-				bhc::run(x.first, x.second);
-				UpdateAllRays();
 			}, params);
 	}
 }
@@ -1111,16 +1145,14 @@ FbellhopModule::SetSourcePosition(const int& sourceID, const FVector& position)
 		x.first.Pos->Sx[sourceID] = position.X;
 		x.first.Pos->Sy[sourceID] = position.Y;
 		x.first.Pos->Sz[sourceID] = position.Z;
-		bhc::run(x.first, x.second);
+		x.first.Pos->SxSyInKm = false;
 	}
 	else {
 		std::visit([&](auto& x)
 			{
 				x.first.Pos->Sz[sourceID] = position.Z;
-				bhc::run(x.first, x.second);
 			}, params);
 	}
-	UpdateAllRays();
 }
 
 /// <summary>
@@ -1187,9 +1219,6 @@ void FbellhopModule::SetSoundSpeedProfile(const TArray<FVector2D>& InSoundSpeedP
 				x.first.ssp->alphaI[i] = 0.0;
 			}
 			x.first.ssp->dirty = true;
-
-			bhc::run(x.first, x.second);
-			UpdateAllRays();
 		}, params);
 }
 
@@ -1214,6 +1243,58 @@ void FbellhopModule::Set1DSoundSpeedProfile(const TArray<FVector2D>& InSoundSpee
 			}
 			x.first.ssp->dirty = true;
 		}, params);
+}
+
+/// <summary>
+/// SSP with range dependence.
+/// GridX, GridY, Depth are the sample points and
+///    must be monotonically increasing.
+/// SoundSpeeds goes in order x, y, z as (x*Ny+y)*Nz+z
+/// </summary>
+/// <param name="GridX">m</param>
+/// <param name="GridY">m</param>
+/// <param name="Depth">meters</param>
+/// <param name="SoundSpeeds">m/s</param>
+void FbellhopModule::SetHexahedralSpeedProfile(const TArray<double>& GridX,
+	const TArray<double>& GridY, const TArray<double>& Depth,
+	const TArray<double>& SoundSpeeds)
+{
+	//always 3D
+	if (std::holds_alternative<RunType3D>(params))
+	{
+		auto& x = std::get<RunType3D>(params);
+		bhc::extsetup_ssp_hexahedral(x.first, GridX.Num(), GridY.Num(), Depth.Num());
+		x.first.ssp->NPts = Depth.Num();
+		x.first.ssp->Nx = GridX.Num();
+		x.first.ssp->Ny = GridY.Num();
+		x.first.ssp->Nz = Depth.Num();
+		int i = 0;
+		for (int iz = 0; iz < Depth.Num(); ++iz) {
+			for (int ix = 0; ix < GridX.Num(); ++ix) {
+				for (int iy = 0; iy < GridY.Num(); ++iy) {
+					x.first.ssp->Seg.x[ix] = GridX[ix];
+					x.first.ssp->Seg.y[iy] = GridY[iy];
+					x.first.ssp->Seg.z[iz] = Depth[iz];
+					x.first.ssp->z[iz] = Depth[iz];
+					x.first.ssp->cMat[(ix * GridY.Num() + iy) * Depth.Num() + iz] =
+						//1500.0 * (iz - iy) * (iz - iy);
+						//1500.0 * (iz - ix) * (iz - ix);
+						SoundSpeeds[i];
+					++i;
+				}
+			}
+		}
+		x.first.Bdry->Top.hs.Depth = x.first.ssp->z[0];
+		x.first.Bdry->Bot.hs.Depth = x.first.ssp->z[Depth.Num() - 1];
+		x.first.ssp->rangeInKm = false;
+	}
+	else if (std::holds_alternative<RunTypeNx2D>(params))
+	{
+		LogBellhop("Warning: Nx2D not supported yet ... continuing, but probably fatal.");
+	}
+	else {
+		LogBellhop("Warning: Hexahedral speed only available in 3D ... continuing.");
+	}
 }
 
 /// <summary>
@@ -1431,13 +1512,7 @@ void FbellhopModule::SetRayMode()
 {
 	std::visit([&](auto& x)
 		{
-			bool bRecalc = x.first.Beam->RunType[0] != 'R';
 			x.first.Beam->RunType[0] = 'R';
-			if (bRecalc)
-			{
-				bhc::run(x.first, x.second);
-				UpdateAllRays();
-			}
 		}, params);
 }
 
@@ -1462,12 +1537,7 @@ void FbellhopModule::SetTransmissionLossMode(const TransmissionLossMode& tl)
 {
 	std::visit([&](auto& x)
 		{
-			bool bRecalc = x.first.Beam->RunType[0] != static_cast<char>(tl);
 			x.first.Beam->RunType[0] = static_cast<char>(tl);
-			if (bRecalc)
-			{
-				bhc::run(x.first, x.second);
-			}
 		}, params);
 }
 
@@ -1481,12 +1551,7 @@ void FbellhopModule::SetBeamMode(const BeamMode& b)
 {
 	std::visit([&](auto& x)
 		{
-			bool bRecalc = x.first.Beam->RunType[1] != static_cast<char>(b);
 			x.first.Beam->RunType[1] = static_cast<char>(b);
-			if (bRecalc)
-			{
-				bhc::run(x.first, x.second);
-			}
 		}, params);
 }
 
@@ -1512,7 +1577,7 @@ bool FbellhopModule::IsTransmissionLossMode()
 /// <param name="sourceID">array access. Will create sources less than this.</param>
 /// <returns>did an error occur?</returns>
 bool FbellhopModule::CheckSourceDepthExists(const int& sourceID) {
-	if (!IsBellhopRun()) {
+	if (!IsBellhopSetup()) {
 		FString m("FbellhopModule::CheckSourceDepthExists: "
 			"No bellhop data available ... ignoring");
 		UE_LOG(LogTemp, Error, TEXT("%s"), *m);

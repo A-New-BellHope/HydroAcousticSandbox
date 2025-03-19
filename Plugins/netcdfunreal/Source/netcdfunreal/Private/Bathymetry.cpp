@@ -6,6 +6,7 @@
 // Sets default values
 ABathymetry::ABathymetry() : OriginLatitude(-1000.0), OriginLongitude(-1000.0)
 {
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 // Called when the game starts or when spawned
@@ -16,6 +17,16 @@ void ABathymetry::BeginPlay()
 	EarthBathymetry = FModuleManager::GetModulePtr<FnetcdfunrealModule>("netcdfunreal");
 
 	Init();
+}
+
+void ABathymetry::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (CheckHYCOM()) {
+		HYCOMDone = false;
+		OnHYCOMDoneEvent.Broadcast();
+	}
 }
 
 /// <summary>
@@ -94,10 +105,12 @@ bool ABathymetry::LoadEarthFile(const FString& Filename)
 /// <param name="South">latitude</param>
 /// <param name="West">longitude</param>
 /// <param name="Depth">modified. depth in meters</param>
-/// <returns>success</returns>
+/// <returns>Bounds in compass order, North, East, South, West</returns>
 bool ABathymetry::GetEarthBathymetry (
-	const float& North, const float& East,
-	const float& South, const float& West,
+	const double& North, const double& East,
+	const double& South, const double& West,
+	double& ActualNorth, double& ActualEast,
+	double& ActualSouth, double& ActualWest,
 	TArray<double>& GridX, TArray<double>& GridY,
 	TArray<double>& Depth) const
 {
@@ -111,10 +124,14 @@ bool ABathymetry::GetEarthBathymetry (
 		return false;
 	}
 
-	const size_t indexLonLow = Algo::LowerBound(allX, West);
+	const size_t indexLonLow = Algo::UpperBound(allX, West) - 1;
 	const size_t indexLonHigh = Algo::UpperBound(allX, East);
-	const size_t indexLatLow = Algo::LowerBound(allY, South);
+	const size_t indexLatLow = Algo::UpperBound(allY, South) - 1;
 	const size_t indexLatHigh = Algo::UpperBound(allY, North);
+	ActualWest = allX[indexLonLow];
+	ActualEast = allX[indexLonHigh];
+	ActualSouth = allY[indexLatLow];
+	ActualNorth = allY[indexLatHigh];
 
 	if (indexLatLow >= indexLatHigh || indexLonLow >= indexLonHigh) {
 		ErrorMessage("Error: ranges are too small or in the wrong order."
@@ -133,15 +150,23 @@ bool ABathymetry::GetEarthBathymetry (
 	//Bellhop wants depth positive going down.
 	for (auto& x : Depth) { x *= -1; }
 
+	if (OriginLatitude < -500 || OriginLongitude < -500) {
+		ErrorMessage("Warning (GetEarthSoundSpeed): Origin not set, "
+			"cannot calculate grid ... returning.");
+		return false;
+	}
+
 	//TODO: extra copying and allocation (probably not very large)
 	GridX.Empty();
-	for (size_t i = indexLatLow; i <= indexLatHigh; ++i) {
-		GridX.Push(Distance(OriginLatitude, OriginLongitude,
+	for (size_t i = indexLatLow; i < indexLatHigh; ++i) {
+		double sign = (allY[i] < OriginLatitude) ? -1.0 : 1.0;
+		GridX.Push(sign * Distance(OriginLatitude, OriginLongitude,
 			allY[i], OriginLongitude));
 	}
 	GridY.Empty();
-	for (size_t i = indexLonLow; i <= indexLonHigh; ++i) {
-		GridY.Push(Distance(OriginLatitude, OriginLongitude,
+	for (size_t i = indexLonLow; i < indexLonHigh; ++i) {
+		double sign = (allX[i] < OriginLongitude) ? -1.0 : 1.0;
+		GridY.Push(sign * Distance(OriginLatitude, OriginLongitude,
 			OriginLatitude, allX[i]));
 	}
 
@@ -150,7 +175,8 @@ bool ABathymetry::GetEarthBathymetry (
 
 /// <summary>
 /// Get the sound speed within lat/lon for bellhop.
-/// Formated as 
+/// Formated for bellhop plugin
+/// This just starts the calculation, CheckHYCOM() to check the status. 
 /// </summary>
 /// <param name="North">Degrees latitude of north edge</param>
 /// <param name="East">Degrees longitude (-180,180) of east edge</param>
@@ -159,50 +185,140 @@ bool ABathymetry::GetEarthBathymetry (
 /// <param name="Time">time</param>
 /// <param name="Depth">modified. depth in meters</param>
 /// <param name="Soundspeed">modified. soundspeed in meters per second</param>
-/// <returns>success</returns>
-bool ABathymetry::GetEarthSoundSpeed(const float& North, const float& East,
-	const float& South, const float& West, const FDateTime& Time,
-	TArray<double>& GridX, TArray<double>& GridY,
-	TArray<double>& Depth, TArray<double>& SoundSpeed) const
+void ABathymetry::GetEarthSoundSpeed(const double& North, const double& East,
+	const double& South, const double& West, const FDateTime& Time)
 {
-	FString url = "https://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/ts3z";
-	TArray<double> allLatitude;
-	TArray<double> allLongitude;
-	TArray<double> allTime;
-	EarthBathymetry->LoadHYCOMDepth(url, Depth);
-	EarthBathymetry->LoadHYCOMLatitude(url, allLatitude);
-	EarthBathymetry->LoadHYCOMLongitude(url, allLongitude);
-	EarthBathymetry->LoadHYCOMTime(url, allTime);
-
-	int southIndex = Algo::LowerBound(allLatitude, South);
-	int northIndex = Algo::UpperBound(allLatitude, North);
-	int westIndex = Algo::LowerBound(allLongitude, (West < 0) ? West + 360.0 : West);
-	int eastIndex = Algo::UpperBound(allLongitude, (East < 0) ? East + 360.0 : East);
-	//HACK - The reference time is 2000-01-01 at 00:00:00, or 946713600 unix timestamp
-	double HoursElapsed = (Time - FDateTime::FromUnixTimestamp(946713600)).GetTotalHours();
-	UE_LOGFMT(LogTemp, Warning, "Hours elapsed {0}", HoursElapsed);
-	int timeIndex = Algo::UpperBound(allTime, HoursElapsed);
-
-	for (int i = westIndex; i <= eastIndex; ++i) {
-		GridX.Push(Distance(OriginLatitude, OriginLongitude,
-			OriginLatitude, allLongitude[i]));
-	}
-	for (int i = southIndex; i <= northIndex; ++i) {
-		GridY.Push(Distance(OriginLatitude, OriginLongitude,
-			allLatitude[i], OriginLongitude));
+	if (HYCOMDone) {
+		ErrorMessage("Warning (GetEarthSoundSpeed): already downloading hycom."
+			"This should not happen ... ignoring.");
+		return;
 	}
 
-	return EarthBathymetry->LoadHYCOMSoundSpeed(url, timeIndex, timeIndex, 0, 39,
-		southIndex, northIndex, westIndex, eastIndex, SoundSpeed);
+	if (OriginLatitude < -500 || OriginLongitude < -500) {
+		ErrorMessage("Warning (GetEarthSoundSpeed): Origin not set, "
+			"cannot calculate grid ... returning.");
+		return;
+	}
+
+	// Switch to HYCOM's 'degrees east of 0' convention
+	const double HOriginLongitude = 
+		(OriginLongitude < 0) ? OriginLongitude + 360.0 : OriginLongitude;
+
+	HYCOMDone = false;
+	UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]
+		{
+			FString url = "https://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/ts3z";
+			TArray<double> allLatitude;
+			TArray<double> allLongitude;
+			TArray<double> allTime;
+			EarthBathymetry->LoadHYCOMDepth(url, HexDepth);
+			EarthBathymetry->LoadHYCOMLatitude(url, allLatitude);
+			EarthBathymetry->LoadHYCOMLongitude(url, allLongitude);
+			EarthBathymetry->LoadHYCOMTime(url, allTime);
+
+			int southIndex = Algo::UpperBound(allLatitude, South) - 1;
+			int northIndex = Algo::UpperBound(allLatitude, North);
+			int westIndex =
+				Algo::UpperBound(allLongitude, (West < 0) ? West + 360.0 : West) - 1;
+			int eastIndex =
+				Algo::UpperBound(allLongitude, (East < 0) ? East + 360.0 : East);
+			//HACK - The reference time is 2000-01-01 at 00:00:00, or 946713600 unix timestamp
+			double HoursElapsed = (Time - FDateTime::FromUnixTimestamp(946713600)).GetTotalHours();
+			UE_LOGFMT(LogTemp, Warning, "Hours elapsed {0}", HoursElapsed);
+			int timeIndex = Algo::UpperBound(allTime, HoursElapsed);
+
+			HexGridX.Empty();
+			for (int i = southIndex; i <= northIndex; ++i) {
+				double sign = (allLatitude[i] < OriginLatitude) ? -1.0 : 1.0;
+				HexGridX.Push(sign * Distance(OriginLatitude, OriginLongitude,
+					allLatitude[i], OriginLongitude)
+				);
+			}
+
+			HexGridY.Empty();
+			for (int i = westIndex; i <= eastIndex; ++i) {
+				double lon =
+					(allLongitude[i] > 180.0) ?
+					(allLongitude[i] - 360) : allLongitude[i];
+				double sign = (lon < OriginLongitude) ? -1.0 : 1.0;
+				HexGridY.Push(sign *
+					Distance(OriginLatitude, OriginLongitude,
+						OriginLatitude, lon)
+				);
+			}
+
+			HexSoundSpeed.Empty();
+			EarthBathymetry->LoadHYCOMSoundSpeed(url, timeIndex, timeIndex, 0, 39,
+				southIndex, northIndex, westIndex, eastIndex, HexSoundSpeed);
+
+			HYCOMDone = true;
+		}
+	);
 }
 
+/// <summary>
+/// Check if the HYCOM calculation is going.
+/// Threadsafe
+/// </summary>
+/// <returns>Is hycom done?</returns>
+bool ABathymetry::CheckHYCOM() const
+{
+	return HYCOMDone;
+}
+
+/// <summary>
+/// Convert lat long to Unreal coordinates.
+/// Only makes sense if the origin is set (no checking).
+/// </summary>
+/// <param name="Latitude"></param>
+/// <param name="Longitude"></param>
+/// <returns></returns>
+FVector ABathymetry::LatLongToPosition(
+	const double& Latitude, const double& Longitude) const
+{
+	auto ResX = Distance(OriginLatitude, OriginLongitude,
+		OriginLatitude, Longitude);
+	if (Longitude < OriginLongitude) {
+		ResX *= -1.0;
+	}
+
+	auto ResY = Distance(OriginLatitude, OriginLongitude,
+		Latitude, OriginLongitude);
+	if (Latitude < OriginLatitude) {
+		ResY *= -1.0;
+	}
+
+	return FVector(ResX, ResY, 0);
+}
+
+/// <summary>
+/// Convert Unreal coordinates to lat long.
+/// Only makes sense if the origin is set.
+/// Assumes a depth of 0.
+/// </summary>
+/// <param name="Position">unreal coords (meters)</param>
+/// <returns>latitude, longitude, 0</returns>
+FVector ABathymetry::PositionToLatLong(const FVector& Position) const
+{
+	const double latRad = FMath::DegreesToRadians(OriginLatitude);
+	const double lonRad = FMath::DegreesToRadians(OriginLongitude);
+	const double bearingRad = FMath::Atan2(Position.Y, Position.X);
+	double angularDistance =
+		FMath::Sqrt(Position.X * Position.X + Position.Y * Position.Y) /
+		EarthRadius;
+
+	double newLatRad = asin(sin(latRad) * cos(angularDistance) + cos(latRad) * sin(angularDistance) * cos(bearingRad));
+	double newLonRad = lonRad + atan2(sin(bearingRad) * sin(angularDistance) * cos(latRad), cos(angularDistance) - sin(latRad) * sin(newLatRad));
+
+	return FVector(FMath::RadiansToDegrees(newLatRad),
+		FMath::RadiansToDegrees(newLonRad), 0);
+}
 
 /// <summary>
 /// Extra initialization.
 /// </summary>
 void ABathymetry::Init()
 {}
-
 
 /// <summary>
 /// Estimate the distance between these two points on Earth.
@@ -224,7 +340,6 @@ double ABathymetry::Distance(double latitud1, double longitud1,
 	haversine = (pow(sin((1.0 / 2) * (latitud2 - latitud1)), 2)) + 
 		((cos(latitud1)) * (cos(latitud2)) * (pow(sin((1.0 / 2) * (longitud2 - longitud1)), 2)));
 	temp = 2 * asin(FMath::Min(1.0, FMath::Sqrt(haversine)));
-	const double EarthRadius = 6372797.56085;
 	distancia_puntos = EarthRadius * temp;
 
 	return distancia_puntos;

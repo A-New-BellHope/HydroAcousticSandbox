@@ -2,11 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "HAL/PlatformFileManager.h"
 #include "HAL/PlatformFileCommon.h"
 #include "bellhop.h"
 #include "BellhopController.generated.h"
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FEnvfileDoneEvent);
 
 UCLASS(BlueprintType, Category = "Bellhop Acoustic Ray Trace")
 class BELLHOP_API ABellhopController : public AActor
@@ -66,10 +69,25 @@ public:
 	bool SetSingleSoundSpeed(const TArray<double>& Depth,
 		const TArray<double>& SoundSpeed);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	bool SetHexahedralSoundSpeed(
+		const TArray<double>& GridX, const TArray<double>& GridY,
+		const TArray<double>& Depth, const TArray<double>& SoundSpeed);
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	bool GetSingleSoundSpeed(const FVector &Depth, float& SoundSpeed);
 
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	void SetRayMode();
+
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	bool CheckSource(const FVector& Location);
+
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	void WriteBellhopEnvironment(FString BaseName, FString Directory);
+
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	bool IsEnvfileRunning() const;
+	UPROPERTY(BlueprintAssignable, Category = "Bellhop Acoustic Library")
+	FEnvfileDoneEvent OnEnvfileDoneEvent;
 
 private:
 	//helpers
@@ -80,4 +98,7 @@ private:
 	//members
 
 	FbellhopModule* Bellhop;
+
+	FThreadSafeBool EnvfileRunning;
+	FString EnvFileName;
 };
