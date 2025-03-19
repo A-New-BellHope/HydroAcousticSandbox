@@ -55,8 +55,10 @@ public:
 	FString GetBellhopDirectory();
 	FString GetBellhopEnvironmentDirectory();
 	bool IsBellhopReady();
+	bool IsBellhopSetup();
 	bool IsBellhopRun() const { return rayReady; }
 	void MarkBellhopRun(const bool& State);
+	bool WriteEnvironment(FString FileRoot);
 
 	int GetNRays() const;
 	int GetMaxPoints();
@@ -107,6 +109,9 @@ public:
 	void SetSoundSpeedProfile(const TArray<FVector2D>& InSoundSpeedProfile);
 	bool GetSoundSpeed(const FVector& Position, float& SoundSpeed);
 	void Set1DSoundSpeedProfile(const TArray<FVector2D>& InSoundSpeedProfile);
+	void SetHexahedralSpeedProfile(const TArray<double>& GridX,
+		const TArray<double>& GridY, const TArray<double>& Depth,
+		const TArray<double>& SoundSpeeds);
 
 	TArray<FVector> GetBoundaryPoints();
 	int GetBoundarySizeX();
@@ -176,4 +181,5 @@ public:
 	bool recalculateRays;
 	bool working;
 	bool rayReady;
+	bool IsSetup = false;
 };

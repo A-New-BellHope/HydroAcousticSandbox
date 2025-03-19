@@ -55,7 +55,7 @@ private:
 
 	bool HYCOMShortToDoubleWithScale(
 		const netCDF::NcVar& Source,
-		const size_t& NumberSamples,
+		const size_t NumberSamples,
 		TArray<double>& Converted) const;
 
 private:
@@ -67,7 +67,8 @@ private:
 	bool IsLongitudeDirty = true;
 	bool IsLatitudeDirty = true;
 	bool IsTimeDirty = true;
-	bool IsSoundSpeedDirty = true;
+
+	std::string LastURL = "";
 
 	TArray<double> DepthCache;
 	TArray<double> LongitudeCache;
