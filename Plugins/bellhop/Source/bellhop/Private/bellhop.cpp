@@ -31,7 +31,6 @@ void LogBellhopOutput(const char* Message)
 FbellhopModule::FbellhopModule(): BellhopLibraryHandle(nullptr),
 recalculateRays(true),
 working(false),
-rayReady(false),
 MaxArrivalTime(-1.0),
 lastFileName("")
 {
@@ -105,7 +104,16 @@ bool FbellhopModule::IsBellhopSetup()
 
 void FbellhopModule::MarkBellhopRun(const bool& State)
 { 
-	rayReady = State;
+	bBellhopRun = State;
+
+	if (IsRayMode()) {
+		bRaysUpdated = State;
+	}
+
+	if (IsTransmissionLossMode()) {
+		bTransmissionLossUpdated = State;
+	}
+
 }
 
 /// <summary>
@@ -460,6 +468,8 @@ void FbellhopModule::RunBellhop()
 		UE_LOG(LogTemp, Warning, TEXT("multiple calls to bellhop ... ignoring"));
 		return;
 	}
+
+	MarkBellhopRun(false);
 
 	std::visit([&](auto& x)
 		{
@@ -866,16 +876,22 @@ std::map<double, FVector> FbellhopModule::GetAllRayPointArrival(const int& ray) 
 }
 
 /// <summary>
-/// Update the local storage of all the rays.
+/// Update the local storage of all the rays or transmission loss data.
 /// </summary>
 void FbellhopModule::UpdateAllRays() {
-	AllRays.Empty();
-	AllRayArrivals.Empty();
-	MaxArrivalTime = -1.0;
-	int count = GetNRays();
-	for (int i = 0; i < count; ++i) {
-		AllRays.Add(GetAllRayPoints(i));
-		AllRayArrivals.Add(GetAllRayPointArrival(i));
+	if (IsRayMode()) {
+		AllRays.Empty();
+		AllRayArrivals.Empty();
+		MaxArrivalTime = -1.0;
+		int count = GetNRays();
+		for (int i = 0; i < count; ++i) {
+			AllRays.Add(GetAllRayPoints(i));
+			AllRayArrivals.Add(GetAllRayPointArrival(i));
+		}
+	}
+	else if (IsTransmissionLossMode()) {
+		GetTransmissionLoss(_TransmissionLoss, _Width, _Height, _Bearings);
+		bTransmissionLossUpdated = true;
 	}
 }
 
@@ -1413,6 +1429,13 @@ void FbellhopModule::GetHorizontal(const int& pancake, TArray<FVector>& corners)
 void FbellhopModule::GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
 	int32_t& Width, int32_t& Height, int32_t& Bearings)
 {
+	if (bTransmissionLossUpdated) {
+		TransmissionLoss = _TransmissionLoss;
+		Width = _Width;
+		Height = _Height;
+		Bearings = _Bearings;
+	}
+
 	std::visit([&](auto& x)
 		{
 			Width = x.first.Pos->NRz_per_range;
@@ -1512,6 +1535,7 @@ void FbellhopModule::SetRayMode()
 {
 	std::visit([&](auto& x)
 		{
+			MarkBellhopRun(x.first.Beam->RunType[0] == 'R');
 			x.first.Beam->RunType[0] = 'R';
 		}, params);
 }
@@ -1537,6 +1561,7 @@ void FbellhopModule::SetTransmissionLossMode(const TransmissionLossMode& tl)
 {
 	std::visit([&](auto& x)
 		{
+			MarkBellhopRun(x.first.Beam->RunType[0] == static_cast<char>(tl));
 			x.first.Beam->RunType[0] = static_cast<char>(tl);
 		}, params);
 }

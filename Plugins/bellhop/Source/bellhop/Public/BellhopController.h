@@ -10,6 +10,15 @@
 #include "BellhopController.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FEnvfileDoneEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FBellhopDoneEvent);
+
+UENUM(BlueprintType, Category = "Bellhop Acoustic Ray Trace")
+enum class ETransmissionLossMode : uint8
+{
+	Coherent UMETA(DisplayName = "C"),
+	Incoherent UMETA(DisplayName = "I"),
+	SemiCoherent UMETA(DisplayName = "S")
+};
 
 UCLASS(BlueprintType, Category = "Bellhop Acoustic Ray Trace")
 class BELLHOP_API ABellhopController : public AActor
@@ -32,7 +41,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	void SetupDefaults(const bool& O3D, const bool& R3D);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
-		void RunBellhop() const;
+		void RunBellhop();
 	UFUNCTION(BluePrintCallable, Category = "Bellhop Acoustic Library")
 		void ReadFile(const FString& BellhopRoot, const bool& O3D, const bool& R3D);
 	UFUNCTION(BluePrintCallable, Category = "Bellhop Acoustic Library")
@@ -49,6 +58,7 @@ public:
 		void MoveSource(const int& Source, const float& X);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 		void MoveSource3D(const int& Source, const FVector& position);
+
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 		void GetRayAzimuths(float& low, float& high, int& n) const;
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
@@ -57,6 +67,20 @@ public:
 		void SetRayAzimuths(const float& low, const float& high, const int& n);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 		void SetRayAltitudes(const float& low, const float& high, const int& n);
+
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+		void GetReiceiverBearings(TArray<float>& ReceiverBearings) const;
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+		void GetReiceiverDepths(TArray<float>& ReceiverDepths) const;
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+		void GetReiceiverRanges(TArray<float>& ReceiverRanges) const;
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+		void SetReiceiverBearings(const float& low, const float& high, const int& n);
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+		void SetReiceiverDepths(const float& low, const float& high, const int& n);
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+		void SetReiceiverRanges(const float& low, const float& high, const int& n);
+
 	UFUNCTION(BluePrintCallable, Category = "Bellhop Acoustic Library")
 		float GetMaxArrivalTime();
 	UFUNCTION(BluePrintCallable, Category = "Bellhop Acoustic Library")
@@ -77,6 +101,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	void SetRayMode();
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	void SetTransmissionLossMode(ETransmissionLossMode tl);
 
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	bool CheckSource(const FVector& Location);
@@ -88,6 +114,8 @@ public:
 	bool IsEnvfileRunning() const;
 	UPROPERTY(BlueprintAssignable, Category = "Bellhop Acoustic Library")
 	FEnvfileDoneEvent OnEnvfileDoneEvent;
+	UPROPERTY(BlueprintAssignable, Category = "Bellhop Acoustic Library")
+	FBellhopDoneEvent OnBellhopDoneEvent;
 
 private:
 	//helpers
@@ -100,5 +128,6 @@ private:
 	FbellhopModule* Bellhop;
 
 	FThreadSafeBool EnvfileRunning;
+	FThreadSafeBool BellhopRunning;
 	FString EnvFileName;
 };
