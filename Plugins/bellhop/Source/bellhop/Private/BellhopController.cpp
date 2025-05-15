@@ -38,9 +38,24 @@ bool ABellhopController::IsEnvfileRunning() const {
 /// <summary>
 /// Run the acoustic model with the current parameters.
 /// </summary>
-void ABellhopController::RunBellhop() const
+void ABellhopController::RunBellhop()
 {
-	Bellhop->RunBellhop();
+	if (BellhopRunning) {
+		UE_LOG(LogTemp, Warning, TEXT("Warning: only one bellhop run at a time ... ignoring."));
+		return;
+	}
+
+	BellhopRunning = true;
+	auto envBellhopTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]
+		{
+
+			UE_LOG(LogTemp, Warning, TEXT("Starting bellhop run"));
+			Bellhop->RunBellhop();
+			UE_LOG(LogTemp, Warning, TEXT("Done bellhop run"));
+			BellhopRunning = false;
+			OnBellhopDoneEvent.Broadcast();
+		}
+	);
 }
 
 void ABellhopController::ReadFile(const FString& BellhopRoot, const bool& O3D, const bool& R3D)
@@ -65,7 +80,6 @@ void ABellhopController::ReadFile(const FString& BellhopRoot, const bool& O3D, c
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("Using Bellhop env file %s"), *BHRoot);
-	Bellhop->recalculateRays = !Bellhop->IsRayMode();
 	Bellhop->RunBellhopFile(BHRoot, O3D, R3D);
 	// make sure we're in ray mode (may recalculate)
 	Bellhop->SetRayMode();
@@ -215,6 +229,71 @@ void ABellhopController::SetRayAltitudes(const float& low, const float& high, co
 {
 	Bellhop->SetRayAltitudes(low, high, n);
 }
+
+/// <summary>
+/// Get the receiver bearings: 0 is east, -90 north
+/// </summary>
+/// <param name="ReceiverBearings">degrees south of east</param>
+void ABellhopController::GetReiceiverBearings(TArray<float>& ReceiverBearings) const
+{
+	ReceiverBearings = Bellhop->GetReceiverBearings();
+}
+
+/// <summary>
+/// Get the receiver depths: meters
+/// </summary>
+/// <param name="ReceiverDepths">meters</param>
+void ABellhopController::GetReiceiverDepths(TArray<float>& ReceiverDepths) const
+{
+	ReceiverDepths = Bellhop->GetReceiverDepths();
+}
+
+/// <summary>
+/// Get the receiver ranges: meters
+/// </summary>
+/// <param name="ReceiverRanges"></param>
+void ABellhopController::GetReiceiverRanges(TArray<float>& ReceiverRanges) const
+{
+	ReceiverRanges = Bellhop->GetReceiverRanges();
+}
+
+/// <summary>
+/// Set the receiver bearings. 0 is east, -90 north.
+/// May need many of these in Transmission Loss mode.
+/// </summary>
+/// <param name="low">degrees south of east</param>
+/// <param name="high">degrees south of east</param>
+/// <param name="n">number of samples</param>
+void ABellhopController::
+SetReiceiverBearings(const float& low, const float& high, const int& n)
+{
+	Bellhop->SetReceiverBearings(low, high, n);
+}
+
+/// <summary>
+/// Set the receiver depths.
+/// </summary>
+/// <param name="low">meters</param>
+/// <param name="high">meters</param>
+/// <param name="n">number of samples</param>
+void ABellhopController::
+SetReiceiverDepths(const float& low, const float& high, const int& n)
+{
+	Bellhop->SetReceiverDepths(low, high, n);
+}
+
+/// <summary>
+/// Set receiver ranges.
+/// </summary>
+/// <param name="low">meters</param>
+/// <param name="high">meters</param>
+/// <param name="n">number of samples</param>
+void ABellhopController::
+SetReiceiverRanges(const float& low, const float& high, const int& n)
+{
+	Bellhop->SetReceiverRanges(low, high, n);
+}
+
 /// <summary>
 /// Return the max time, may be -1 if it is not valid.
 /// </summary>
@@ -324,6 +403,32 @@ bool ABellhopController::GetSingleSoundSpeed(const FVector& Position, float& Sou
 void ABellhopController::SetRayMode()
 {
 	Bellhop->SetRayMode();
+}
+
+/// <summary>
+/// Run in transmission loss mode.
+/// </summary>
+/// <param name="tl">C, S, or I from bellhop</param>
+void ABellhopController::SetTransmissionLossMode(ETransmissionLossMode tl)
+{
+	FbellhopModule::TransmissionLossMode tlmode;
+	switch (tl)
+	{
+	case ETransmissionLossMode::Coherent:
+		tlmode = FbellhopModule::TransmissionLossMode::Coherent;
+		break;
+	case ETransmissionLossMode::Incoherent:
+		tlmode = FbellhopModule::TransmissionLossMode::Incoherent;
+		break;
+	case ETransmissionLossMode::SemiCoherent:
+		tlmode = FbellhopModule::TransmissionLossMode::SemiCoherent;
+		break;
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("Warning: unknown transmission loss mode ... Should not get here. This is bad."));
+		return;
+	}
+	if (tl == ETransmissionLossMode::SemiCoherent)
+	Bellhop->SetTransmissionLossMode(tlmode);
 }
 
 /// <summary>

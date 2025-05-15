@@ -56,7 +56,7 @@ public:
 	FString GetBellhopEnvironmentDirectory();
 	bool IsBellhopReady();
 	bool IsBellhopSetup();
-	bool IsBellhopRun() const { return rayReady; }
+	bool IsBellhopRun() const { return bBellhopRun; }
 	void MarkBellhopRun(const bool& State);
 	bool WriteEnvironment(FString FileRoot);
 
@@ -169,17 +169,19 @@ private:
 	std::variant<RunType2D, RunTypeNx2D, RunType3D> params;
 
 	TArray< TArray<FVector4> > AllRays;
-
 	TArray< std::map<double, FVector> > AllRayArrivals;
-
 	double MaxArrivalTime;
+	bool bRaysUpdated = false;
 
+	TArray<bhc::cpxf> _TransmissionLoss;
+	int32_t _Width;
+	int32_t _Height;
+	int32_t _Bearings;
+	bool bTransmissionLossUpdated = false;
 	
-public:
-
 	//flags
 	bool recalculateRays;
 	bool working;
-	bool rayReady;
+	bool bBellhopRun = false;
 	bool IsSetup = false;
 };
