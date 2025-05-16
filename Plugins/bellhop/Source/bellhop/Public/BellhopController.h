@@ -100,6 +100,8 @@ public:
 	bool GetSingleSoundSpeed(const FVector &Depth, float& SoundSpeed);
 
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	bool IsRayMode() const;
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	void SetRayMode();
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	void SetTransmissionLossMode(ETransmissionLossMode tl);
@@ -129,5 +131,6 @@ private:
 
 	FThreadSafeBool EnvfileRunning;
 	FThreadSafeBool BellhopRunning;
+	FThreadSafeBool BellhopDone;
 	FString EnvFileName;
 };
