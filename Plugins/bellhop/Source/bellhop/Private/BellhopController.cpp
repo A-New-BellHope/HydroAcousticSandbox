@@ -25,6 +25,11 @@ void ABellhopController::BeginPlay()
 void ABellhopController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (BellhopDone) {
+		BellhopDone = false;
+		OnBellhopDoneEvent.Broadcast();
+	}
 }
 
 /// <summary>
@@ -46,20 +51,26 @@ void ABellhopController::RunBellhop()
 	}
 
 	BellhopRunning = true;
+	BellhopDone = false;
 	auto envBellhopTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]
 		{
 
 			UE_LOG(LogTemp, Warning, TEXT("Starting bellhop run"));
 			Bellhop->RunBellhop();
 			UE_LOG(LogTemp, Warning, TEXT("Done bellhop run"));
+			BellhopDone = true;
 			BellhopRunning = false;
-			OnBellhopDoneEvent.Broadcast();
 		}
 	);
 }
 
 void ABellhopController::ReadFile(const FString& BellhopRoot, const bool& O3D, const bool& R3D)
 {
+	if (BellhopRunning) {
+		UE_LOG(LogTemp, Warning, TEXT("Warning: only one bellhop run at a time ... ignoring."));
+		return;
+	}
+
 	UE_LOG(LogTemp, Warning, TEXT("Reading file %s"), *BellhopRoot);
 	FString BHRoot = BellhopRoot;
 
@@ -400,6 +411,10 @@ bool ABellhopController::GetSingleSoundSpeed(const FVector& Position, float& Sou
 	return Bellhop->GetSoundSpeed(Position, SoundSpeed);
 }
 
+bool ABellhopController::IsRayMode() const
+{
+	return Bellhop->IsRayMode();
+}
 void ABellhopController::SetRayMode()
 {
 	Bellhop->SetRayMode();
