@@ -102,6 +102,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	bool IsRayMode() const;
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	bool IsTransmissionLossMode() const;
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	void SetRayMode();
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	void SetTransmissionLossMode(ETransmissionLossMode tl);
