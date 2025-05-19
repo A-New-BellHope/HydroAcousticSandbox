@@ -442,8 +442,12 @@ void ABellhopController::SetTransmissionLossMode(ETransmissionLossMode tl)
 		UE_LOG(LogTemp, Warning, TEXT("Warning: unknown transmission loss mode ... Should not get here. This is bad."));
 		return;
 	}
-	if (tl == ETransmissionLossMode::SemiCoherent)
 	Bellhop->SetTransmissionLossMode(tlmode);
+}
+
+bool ABellhopController::IsTransmissionLossMode() const
+{
+	return Bellhop->IsTransmissionLossMode();
 }
 
 /// <summary>
