@@ -81,6 +81,8 @@ public:
 	void SetRayAltitudes(const float& low, const float& high, const int& n);
 	void GetRayAzimuths(float& low, float& high, int& n) const;
 	void SetRayAzimuths(const float& low, const float& high, const int& n);
+	void SetAltitudeCount(const int& n);
+	void SetAzimuthCount(const int& n);
 
 	TArray<float> GetReceiverRanges() const;
 	TArray<float> GetReceiverDepths() const;

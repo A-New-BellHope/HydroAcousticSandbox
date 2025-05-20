@@ -242,10 +242,28 @@ void ABellhopController::SetRayAltitudes(const float& low, const float& high, co
 }
 
 /// <summary>
+/// Set the number of sample points in altitude.
+/// </summary>
+/// <param name="n">new count, must be positive</param>
+void ABellhopController::SetAltitudeCount(const int& n)
+{
+	Bellhop->SetAltitudeCount(n);
+}
+
+/// <summary>
+/// Set the number of sample points in azimuth.
+/// </summary>
+/// <param name="n">new count, must be positive</param>
+void ABellhopController::SetAzimuthCount(const int& n)
+{
+	Bellhop->SetAzimuthCount(n);
+}
+
+/// <summary>
 /// Get the receiver bearings: 0 is east, -90 north
 /// </summary>
 /// <param name="ReceiverBearings">degrees south of east</param>
-void ABellhopController::GetReiceiverBearings(TArray<float>& ReceiverBearings) const
+void ABellhopController::GetReceiverBearings(TArray<float>& ReceiverBearings) const
 {
 	ReceiverBearings = Bellhop->GetReceiverBearings();
 }
@@ -254,7 +272,7 @@ void ABellhopController::GetReiceiverBearings(TArray<float>& ReceiverBearings) c
 /// Get the receiver depths: meters
 /// </summary>
 /// <param name="ReceiverDepths">meters</param>
-void ABellhopController::GetReiceiverDepths(TArray<float>& ReceiverDepths) const
+void ABellhopController::GetReceiverDepths(TArray<float>& ReceiverDepths) const
 {
 	ReceiverDepths = Bellhop->GetReceiverDepths();
 }
@@ -263,7 +281,7 @@ void ABellhopController::GetReiceiverDepths(TArray<float>& ReceiverDepths) const
 /// Get the receiver ranges: meters
 /// </summary>
 /// <param name="ReceiverRanges"></param>
-void ABellhopController::GetReiceiverRanges(TArray<float>& ReceiverRanges) const
+void ABellhopController::GetReceiverRanges(TArray<float>& ReceiverRanges) const
 {
 	ReceiverRanges = Bellhop->GetReceiverRanges();
 }
@@ -276,7 +294,7 @@ void ABellhopController::GetReiceiverRanges(TArray<float>& ReceiverRanges) const
 /// <param name="high">degrees south of east</param>
 /// <param name="n">number of samples</param>
 void ABellhopController::
-SetReiceiverBearings(const float& low, const float& high, const int& n)
+SetReceiverBearings(const float& low, const float& high, const int& n)
 {
 	Bellhop->SetReceiverBearings(low, high, n);
 }
@@ -288,7 +306,7 @@ SetReiceiverBearings(const float& low, const float& high, const int& n)
 /// <param name="high">meters</param>
 /// <param name="n">number of samples</param>
 void ABellhopController::
-SetReiceiverDepths(const float& low, const float& high, const int& n)
+SetReceiverDepths(const float& low, const float& high, const int& n)
 {
 	Bellhop->SetReceiverDepths(low, high, n);
 }
@@ -300,7 +318,7 @@ SetReiceiverDepths(const float& low, const float& high, const int& n)
 /// <param name="high">meters</param>
 /// <param name="n">number of samples</param>
 void ABellhopController::
-SetReiceiverRanges(const float& low, const float& high, const int& n)
+SetReceiverRanges(const float& low, const float& high, const int& n)
 {
 	Bellhop->SetReceiverRanges(low, high, n);
 }
