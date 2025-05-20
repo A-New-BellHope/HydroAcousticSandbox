@@ -67,19 +67,24 @@ public:
 		void SetRayAzimuths(const float& low, const float& high, const int& n);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 		void SetRayAltitudes(const float& low, const float& high, const int& n);
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+		void SetAzimuthCount(const int& n);
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+		void SetAltitudeCount(const int& n);
+
 
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
-		void GetReiceiverBearings(TArray<float>& ReceiverBearings) const;
+		void GetReceiverBearings(TArray<float>& ReceiverBearings) const;
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
-		void GetReiceiverDepths(TArray<float>& ReceiverDepths) const;
+		void GetReceiverDepths(TArray<float>& ReceiverDepths) const;
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
-		void GetReiceiverRanges(TArray<float>& ReceiverRanges) const;
+		void GetReceiverRanges(TArray<float>& ReceiverRanges) const;
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
-		void SetReiceiverBearings(const float& low, const float& high, const int& n);
+		void SetReceiverBearings(const float& low, const float& high, const int& n);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
-		void SetReiceiverDepths(const float& low, const float& high, const int& n);
+		void SetReceiverDepths(const float& low, const float& high, const int& n);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
-		void SetReiceiverRanges(const float& low, const float& high, const int& n);
+		void SetReceiverRanges(const float& low, const float& high, const int& n);
 
 	UFUNCTION(BluePrintCallable, Category = "Bellhop Acoustic Library")
 		float GetMaxArrivalTime();

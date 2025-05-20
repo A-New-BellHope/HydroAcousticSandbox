@@ -710,6 +710,32 @@ SetRayAzimuths(const float& low, const float& high, const int& n)
 }
 
 /// <summary>
+/// Set the number of points in the altitude.
+/// Does not change the low and high.
+/// </summary>
+/// <param name="n">new count, must be positive</param>
+void FbellhopModule::SetAltitudeCount(const int& n)
+{
+	float low, high;
+	int oldN;
+	GetRayAltitudes(low, high, oldN);
+	SetRayAltitudes(low, high, n);
+}
+
+/// <summary>
+/// Set the number of points in azimuth.
+/// Does not change the low and high.
+/// </summary>
+/// <param name="n">new count, must be positive</param>
+void FbellhopModule::SetAzimuthCount(const int& n)
+{
+	float low, high;
+	int oldN;
+	GetRayAzimuths(low, high, oldN);
+	SetRayAzimuths(low, high, n);
+}
+
+/// <summary>
 /// Get the receiver locations - range, depth, and bearing.
 /// In 2D there's only 1 bearing at 0 degrees.
 /// In 3D Bearing 0 is east, bearing 90 is south (Bellhop convention).
@@ -1442,7 +1468,7 @@ void FbellhopModule::GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
 	Height = x.first.Pos->NRr;
 	Bearings = x.first.Pos->Ntheta;
 
-	if (Width == 0) {
+	if (Width == 0 || x.second.uAllSources == nullptr) {
 		LogBellhop("Warning: no data in the transmission loss 3D. Check the file name ... continuing.");
 		return;
 	}
