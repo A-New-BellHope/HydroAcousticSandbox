@@ -1495,49 +1495,28 @@ void FbellhopModule::GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
 }
 
 /// <summary>
-/// For compatibility. Replace with the 3D compatible version
+/// Get the transmission loss and bounds.
+/// The names are a little stale.
+/// Be sure to call after the TL calculation is done.
 /// </summary>
-/// <param name="TransmissionLoss"></param>
-/// <param name="Width"></param>
-/// <param name="Height"></param>
-/// <param name="DepthFactor"></param>
-/// <param name="RangeFactor"></param>
+/// <param name="TransmissionLoss">values</param>
+/// <param name="AllWidth">Ranges, meters</param>
+/// <param name="AllHeight">Depths, meters</param>
+/// <param name="AllBearings">Bearings, degrees</param>
 void FbellhopModule::GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
-	int32_t& Width, int32_t& Height,
-	double& DepthFactor, double& RangeFactor)
+	TArray<float>& AllWidth, TArray<float>& AllHeight, TArray<float>& AllBearings)
 {
-	LogBellhop("Warning: deprecated call to 2D only TL function ... continuing.");
-	if (!std::holds_alternative<RunType2D>(params))
-	{
-		LogBellhop("Error: only 2D supported ... continuing.");
-		return;
-	}
-
-	RunType2D& p = std::get<RunType2D>(params);
-
-	Width = 0;
-	Height = 0;
-	DepthFactor = 0;
-	RangeFactor = 0;
-	if (p.second.uAllSources) {
-		Width = p.first.Pos->NRz_per_range;
-		Height = p.first.Pos->NRr;
-		DepthFactor = p.first.Beam->Box.y / double(p.first.Pos->NRz_per_range);
-		RangeFactor = p.first.Beam->Box.r / double(p.first.Pos->NRr);
-		TransmissionLoss.SetNumZeroed(Width*Height, true);
-
-		for (int32_t isrc = 0; isrc < p.first.Pos->NSz; ++isrc) {
-			for (int32_t Irz1 = 0; Irz1 < p.first.Pos->NRz_per_range; ++Irz1) {
-				for (int32_t r = 0; r < p.first.Pos->NRr; ++r) {
-					TransmissionLoss[Irz1 * Height + r] +=
-						p.second.uAllSources[
-							(isrc * p.first.Pos->NRz_per_range + Irz1) * p.first.Pos->NRr + r];
-				}
-			}
-		}
-	}
+	int32_t junk;
+	GetTransmissionLoss(TransmissionLoss, junk, junk, junk);
+	AllWidth = GetReceiverRanges();
+	AllHeight = GetReceiverDepths();
+	AllBearings = GetReceiverBearings();
 }
 
+/// <summary>
+/// Get the runtype. Code from bellhop.
+/// </summary>
+/// <returns>character code from bellhop</returns>
 FString FbellhopModule::GetCurrentMode()
 {
 	FString ret;

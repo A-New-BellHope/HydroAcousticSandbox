@@ -119,13 +119,10 @@ public:
 	int GetBoundarySizeX();
 	int GetBoundarySizeY();
 
-	void
-		GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
-			int32_t& Width, int32_t& Height, int32_t& Bearings);
-	void
-		GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
-			int32_t& Width, int32_t& Height,
-			double& DepthFactor, double& RangeFactor);
+	void GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
+		int32_t& Width, int32_t& Height, int32_t& Bearings);
+	void GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
+		TArray<float>& AllWidth, TArray<float>& AllHeight, TArray<float>& AllBearings);
 	void GetCorners(const int& bearing, TArray<FVector>& corners);
 	void GetCylinder(const int& radial, TArray<FVector>& vertices);
 	void GetHorizontal(const int& pancake, TArray<FVector>& corners);
