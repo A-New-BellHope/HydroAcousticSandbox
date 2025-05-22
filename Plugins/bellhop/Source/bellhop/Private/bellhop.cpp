@@ -735,6 +735,24 @@ void FbellhopModule::SetAzimuthCount(const int& n)
 	SetRayAzimuths(low, high, n);
 }
 
+double FbellhopModule::GetStepSize() const
+{
+	double ret;
+	std::visit([&](auto& x)
+		{
+			ret = x.first.Beam->deltas;
+		}, params);
+	return ret;
+}
+
+void FbellhopModule::SetStepSize(const double& StepSize)
+{
+	std::visit([&](auto& x)
+		{
+			x.first.Beam->deltas = StepSize;
+		}, params);
+}
+
 /// <summary>
 /// Get the receiver locations - range, depth, and bearing.
 /// In 2D there's only 1 bearing at 0 degrees.
@@ -1508,8 +1526,8 @@ void FbellhopModule::GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
 {
 	int32_t junk;
 	GetTransmissionLoss(TransmissionLoss, junk, junk, junk);
-	AllWidth = GetReceiverRanges();
-	AllHeight = GetReceiverDepths();
+	AllWidth = GetReceiverDepths();
+	AllHeight = GetReceiverRanges();
 	AllBearings = GetReceiverBearings();
 }
 

@@ -84,6 +84,9 @@ public:
 	void SetAltitudeCount(const int& n);
 	void SetAzimuthCount(const int& n);
 
+	double GetStepSize() const;
+	void SetStepSize(const double& StepSize);
+
 	TArray<float> GetReceiverRanges() const;
 	TArray<float> GetReceiverDepths() const;
 	TArray<float> GetReceiverBearings() const;

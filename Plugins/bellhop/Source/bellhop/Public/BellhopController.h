@@ -71,6 +71,10 @@ public:
 		void SetAzimuthCount(const int& n);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 		void SetAltitudeCount(const int& n);
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+		void SetStepSize(const double& StepSize);
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+		double GetStepSize() const;
 
 
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")

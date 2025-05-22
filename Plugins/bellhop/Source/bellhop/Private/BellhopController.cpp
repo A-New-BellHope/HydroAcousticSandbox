@@ -259,6 +259,16 @@ void ABellhopController::SetAzimuthCount(const int& n)
 	Bellhop->SetAzimuthCount(n);
 }
 
+void ABellhopController::SetStepSize(const double& StepSize)
+{
+	Bellhop->SetStepSize(StepSize);
+}
+
+double ABellhopController::GetStepSize() const
+{
+	return Bellhop->GetStepSize();
+}
+
 /// <summary>
 /// Get the receiver bearings: 0 is east, -90 north
 /// </summary>
