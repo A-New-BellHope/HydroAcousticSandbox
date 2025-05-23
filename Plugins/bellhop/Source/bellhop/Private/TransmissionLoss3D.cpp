@@ -150,7 +150,7 @@ TArray<FVector> ATransmissionLoss3D::GetCylinder(const int& Radial)
 
 /// <summary>
 /// Get the real space vertices of a quad parallel to horizontal pancakes (constant z).
-/// Intended to replace the vector parameter in 2x2 (a quad) SplitMesh, with the 
+/// Intended to replace the vector parameter in 2xBearings (a quad) SplitMesh, with the 
 /// same triangle and UV assignment, to skip doing the UV logic here.
 /// Must be called after UpdateTransmissionLoss.
 /// </summary>
@@ -238,8 +238,8 @@ UpdateTextureHorizontal(UMaterialInstanceDynamic* Material, const int& Horizonta
 	}
 
 	TArray<unsigned int> Pixels;
-	for (int j = 0; j < Height; ++j) {
-		for (int i = 0; i < Bearings; ++i) {
+	for (int i = 0; i < Bearings; ++i) {
+		for (int j = 0; j < Height; ++j) {
 			int ind = i * Width * Height + Horizontal * Height + j;
 			Pixels.Add(ColorMap(ToReal(TransmissionLoss[ind]), MinValue, MaxValue));
 		}

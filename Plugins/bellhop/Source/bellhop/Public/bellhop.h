@@ -128,7 +128,7 @@ public:
 		TArray<float>& AllWidth, TArray<float>& AllHeight, TArray<float>& AllBearings);
 	void GetCorners(const int& bearing, TArray<FVector>& corners);
 	void GetCylinder(const int& radial, TArray<FVector>& vertices);
-	void GetHorizontal(const int& pancake, TArray<FVector>& corners);
+	void GetHorizontal(const int& pancake, TArray<FVector>& vertices);
 
 	void SetRayMode();
 	void SetTransmissionLossMode(const TransmissionLossMode& tl);
