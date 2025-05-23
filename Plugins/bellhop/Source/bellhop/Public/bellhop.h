@@ -56,7 +56,7 @@ public:
 	FString GetBellhopEnvironmentDirectory();
 	bool IsBellhopReady();
 	bool IsBellhopSetup();
-	bool IsBellhopRun() const { return rayReady; }
+	bool IsBellhopRun() const { return bBellhopRun; }
 	void MarkBellhopRun(const bool& State);
 	bool WriteEnvironment(FString FileRoot);
 
@@ -81,6 +81,11 @@ public:
 	void SetRayAltitudes(const float& low, const float& high, const int& n);
 	void GetRayAzimuths(float& low, float& high, int& n) const;
 	void SetRayAzimuths(const float& low, const float& high, const int& n);
+	void SetAltitudeCount(const int& n);
+	void SetAzimuthCount(const int& n);
+
+	double GetStepSize() const;
+	void SetStepSize(const double& StepSize);
 
 	TArray<float> GetReceiverRanges() const;
 	TArray<float> GetReceiverDepths() const;
@@ -117,16 +122,13 @@ public:
 	int GetBoundarySizeX();
 	int GetBoundarySizeY();
 
-	void
-		GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
-			int32_t& Width, int32_t& Height, int32_t& Bearings);
-	void
-		GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
-			int32_t& Width, int32_t& Height,
-			double& DepthFactor, double& RangeFactor);
+	void GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
+		int32_t& Width, int32_t& Height, int32_t& Bearings);
+	void GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
+		TArray<float>& AllWidth, TArray<float>& AllHeight, TArray<float>& AllBearings);
 	void GetCorners(const int& bearing, TArray<FVector>& corners);
 	void GetCylinder(const int& radial, TArray<FVector>& vertices);
-	void GetHorizontal(const int& pancake, TArray<FVector>& corners);
+	void GetHorizontal(const int& pancake, TArray<FVector>& vertices);
 
 	void SetRayMode();
 	void SetTransmissionLossMode(const TransmissionLossMode& tl);
@@ -169,17 +171,19 @@ private:
 	std::variant<RunType2D, RunTypeNx2D, RunType3D> params;
 
 	TArray< TArray<FVector4> > AllRays;
-
 	TArray< std::map<double, FVector> > AllRayArrivals;
-
 	double MaxArrivalTime;
+	bool bRaysUpdated = false;
 
+	TArray<bhc::cpxf> _TransmissionLoss;
+	int32_t _Width;
+	int32_t _Height;
+	int32_t _Bearings;
+	bool bTransmissionLossUpdated = false;
 	
-public:
-
 	//flags
 	bool recalculateRays;
 	bool working;
-	bool rayReady;
+	bool bBellhopRun = false;
 	bool IsSetup = false;
 };

@@ -31,7 +31,6 @@ void LogBellhopOutput(const char* Message)
 FbellhopModule::FbellhopModule(): BellhopLibraryHandle(nullptr),
 recalculateRays(true),
 working(false),
-rayReady(false),
 MaxArrivalTime(-1.0),
 lastFileName("")
 {
@@ -105,7 +104,16 @@ bool FbellhopModule::IsBellhopSetup()
 
 void FbellhopModule::MarkBellhopRun(const bool& State)
 { 
-	rayReady = State;
+	bBellhopRun = State;
+
+	if (IsRayMode()) {
+		bRaysUpdated = State;
+	}
+
+	if (IsTransmissionLossMode()) {
+		bTransmissionLossUpdated = State;
+	}
+
 }
 
 /// <summary>
@@ -461,6 +469,8 @@ void FbellhopModule::RunBellhop()
 		return;
 	}
 
+	MarkBellhopRun(false);
+
 	std::visit([&](auto& x)
 		{
 			bhc::echo(x.first);
@@ -700,6 +710,50 @@ SetRayAzimuths(const float& low, const float& high, const int& n)
 }
 
 /// <summary>
+/// Set the number of points in the altitude.
+/// Does not change the low and high.
+/// </summary>
+/// <param name="n">new count, must be positive</param>
+void FbellhopModule::SetAltitudeCount(const int& n)
+{
+	float low, high;
+	int oldN;
+	GetRayAltitudes(low, high, oldN);
+	SetRayAltitudes(low, high, n);
+}
+
+/// <summary>
+/// Set the number of points in azimuth.
+/// Does not change the low and high.
+/// </summary>
+/// <param name="n">new count, must be positive</param>
+void FbellhopModule::SetAzimuthCount(const int& n)
+{
+	float low, high;
+	int oldN;
+	GetRayAzimuths(low, high, oldN);
+	SetRayAzimuths(low, high, n);
+}
+
+double FbellhopModule::GetStepSize() const
+{
+	double ret;
+	std::visit([&](auto& x)
+		{
+			ret = x.first.Beam->deltas;
+		}, params);
+	return ret;
+}
+
+void FbellhopModule::SetStepSize(const double& StepSize)
+{
+	std::visit([&](auto& x)
+		{
+			x.first.Beam->deltas = StepSize;
+		}, params);
+}
+
+/// <summary>
 /// Get the receiver locations - range, depth, and bearing.
 /// In 2D there's only 1 bearing at 0 degrees.
 /// In 3D Bearing 0 is east, bearing 90 is south (Bellhop convention).
@@ -866,16 +920,22 @@ std::map<double, FVector> FbellhopModule::GetAllRayPointArrival(const int& ray) 
 }
 
 /// <summary>
-/// Update the local storage of all the rays.
+/// Update the local storage of all the rays or transmission loss data.
 /// </summary>
 void FbellhopModule::UpdateAllRays() {
-	AllRays.Empty();
-	AllRayArrivals.Empty();
-	MaxArrivalTime = -1.0;
-	int count = GetNRays();
-	for (int i = 0; i < count; ++i) {
-		AllRays.Add(GetAllRayPoints(i));
-		AllRayArrivals.Add(GetAllRayPointArrival(i));
+	if (IsRayMode()) {
+		AllRays.Empty();
+		AllRayArrivals.Empty();
+		MaxArrivalTime = -1.0;
+		int count = GetNRays();
+		for (int i = 0; i < count; ++i) {
+			AllRays.Add(GetAllRayPoints(i));
+			AllRayArrivals.Add(GetAllRayPointArrival(i));
+		}
+	}
+	else if (IsTransmissionLossMode()) {
+		GetTransmissionLoss(_TransmissionLoss, _Width, _Height, _Bearings);
+		bTransmissionLossUpdated = true;
 	}
 }
 
@@ -1373,24 +1433,27 @@ void FbellhopModule::GetCylinder(const int& radial, TArray<FVector>& vertices)
 }
 
 /// <summary>
-/// Get corners of the z-slice such that the circular z-slice is just contained
+/// Get ring of a z-slice for a horizontal slice.
 /// in the quad.
 /// Quad encompassing one of the stack of pancakes.
 /// </summary>
 /// <param name="panckake">which z slice to take (bottom is 0)</param>
-/// <param name="corners">Appends the corners of a quad just containing the pancake</param>
-void FbellhopModule::GetHorizontal(const int& pancake, TArray<FVector>& corners)
+/// <param name="corners">Appends the corners of inner-outer radii</param>
+void FbellhopModule::GetHorizontal(const int& pancake, TArray<FVector>& vertices)
 {
 	std::visit([&](auto& x)
 		{
+			float InnerRange = x.first.Pos->Rr[0];
+			float OuterRange = x.first.Pos->Rr[x.first.Pos->NRr - 1];
 			float Depth = x.first.Pos->Rz[pancake];
-	//TODO: this may cause issues in 2D. Are radials always all the same?
-	float RMin = x.first.Pos->Rr[0];
-	float RMax = x.first.Pos->Rr[x.first.Pos->NRr - 1];
-	corners.Add(FVector(RMin + RMax, RMin + RMax, -Depth));
-	corners.Add(FVector(RMin - RMax, RMin + RMax, -Depth));
-	corners.Add(FVector(RMin + RMax, RMin - RMax, -Depth));
-	corners.Add(FVector(RMin - RMax, RMin - RMax, -Depth));
+			for (int i = 0; i < x.first.Pos->Ntheta; ++i)
+			{
+				float theta = FMath::DegreesToRadians(x.first.Pos->theta[i]);
+				float CosTheta = FMath::Cos(theta);
+				float SinTheta = FMath::Sin(theta);
+				vertices.Add(FVector(InnerRange * CosTheta, InnerRange * SinTheta, -Depth));
+				vertices.Add(FVector(OuterRange * CosTheta, OuterRange * SinTheta, -Depth));
+			}
 		}, params);
 }
 
@@ -1413,13 +1476,20 @@ void FbellhopModule::GetHorizontal(const int& pancake, TArray<FVector>& corners)
 void FbellhopModule::GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
 	int32_t& Width, int32_t& Height, int32_t& Bearings)
 {
+	if (bTransmissionLossUpdated) {
+		TransmissionLoss = _TransmissionLoss;
+		Width = _Width;
+		Height = _Height;
+		Bearings = _Bearings;
+	}
+
 	std::visit([&](auto& x)
 		{
 			Width = x.first.Pos->NRz_per_range;
 	Height = x.first.Pos->NRr;
 	Bearings = x.first.Pos->Ntheta;
 
-	if (Width == 0) {
+	if (Width == 0 || x.second.uAllSources == nullptr) {
 		LogBellhop("Warning: no data in the transmission loss 3D. Check the file name ... continuing.");
 		return;
 	}
@@ -1446,49 +1516,28 @@ void FbellhopModule::GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
 }
 
 /// <summary>
-/// For compatibility. Replace with the 3D compatible version
+/// Get the transmission loss and bounds.
+/// The names are a little stale.
+/// Be sure to call after the TL calculation is done.
 /// </summary>
-/// <param name="TransmissionLoss"></param>
-/// <param name="Width"></param>
-/// <param name="Height"></param>
-/// <param name="DepthFactor"></param>
-/// <param name="RangeFactor"></param>
+/// <param name="TransmissionLoss">values</param>
+/// <param name="AllWidth">Ranges, meters</param>
+/// <param name="AllHeight">Depths, meters</param>
+/// <param name="AllBearings">Bearings, degrees</param>
 void FbellhopModule::GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
-	int32_t& Width, int32_t& Height,
-	double& DepthFactor, double& RangeFactor)
+	TArray<float>& AllWidth, TArray<float>& AllHeight, TArray<float>& AllBearings)
 {
-	LogBellhop("Warning: deprecated call to 2D only TL function ... continuing.");
-	if (!std::holds_alternative<RunType2D>(params))
-	{
-		LogBellhop("Error: only 2D supported ... continuing.");
-		return;
-	}
-
-	RunType2D& p = std::get<RunType2D>(params);
-
-	Width = 0;
-	Height = 0;
-	DepthFactor = 0;
-	RangeFactor = 0;
-	if (p.second.uAllSources) {
-		Width = p.first.Pos->NRz_per_range;
-		Height = p.first.Pos->NRr;
-		DepthFactor = p.first.Beam->Box.y / double(p.first.Pos->NRz_per_range);
-		RangeFactor = p.first.Beam->Box.r / double(p.first.Pos->NRr);
-		TransmissionLoss.SetNumZeroed(Width*Height, true);
-
-		for (int32_t isrc = 0; isrc < p.first.Pos->NSz; ++isrc) {
-			for (int32_t Irz1 = 0; Irz1 < p.first.Pos->NRz_per_range; ++Irz1) {
-				for (int32_t r = 0; r < p.first.Pos->NRr; ++r) {
-					TransmissionLoss[Irz1 * Height + r] +=
-						p.second.uAllSources[
-							(isrc * p.first.Pos->NRz_per_range + Irz1) * p.first.Pos->NRr + r];
-				}
-			}
-		}
-	}
+	int32_t junk;
+	GetTransmissionLoss(TransmissionLoss, junk, junk, junk);
+	AllWidth = GetReceiverDepths();
+	AllHeight = GetReceiverRanges();
+	AllBearings = GetReceiverBearings();
 }
 
+/// <summary>
+/// Get the runtype. Code from bellhop.
+/// </summary>
+/// <returns>character code from bellhop</returns>
 FString FbellhopModule::GetCurrentMode()
 {
 	FString ret;
@@ -1512,6 +1561,7 @@ void FbellhopModule::SetRayMode()
 {
 	std::visit([&](auto& x)
 		{
+			MarkBellhopRun(x.first.Beam->RunType[0] == 'R');
 			x.first.Beam->RunType[0] = 'R';
 		}, params);
 }
@@ -1537,6 +1587,7 @@ void FbellhopModule::SetTransmissionLossMode(const TransmissionLossMode& tl)
 {
 	std::visit([&](auto& x)
 		{
+			MarkBellhopRun(x.first.Beam->RunType[0] == static_cast<char>(tl));
 			x.first.Beam->RunType[0] = static_cast<char>(tl);
 		}, params);
 }
