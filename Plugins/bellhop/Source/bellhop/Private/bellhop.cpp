@@ -1433,24 +1433,27 @@ void FbellhopModule::GetCylinder(const int& radial, TArray<FVector>& vertices)
 }
 
 /// <summary>
-/// Get corners of the z-slice such that the circular z-slice is just contained
+/// Get ring of a z-slice for a horizontal slice.
 /// in the quad.
 /// Quad encompassing one of the stack of pancakes.
 /// </summary>
 /// <param name="panckake">which z slice to take (bottom is 0)</param>
-/// <param name="corners">Appends the corners of a quad just containing the pancake</param>
-void FbellhopModule::GetHorizontal(const int& pancake, TArray<FVector>& corners)
+/// <param name="corners">Appends the corners of inner-outer radii</param>
+void FbellhopModule::GetHorizontal(const int& pancake, TArray<FVector>& vertices)
 {
 	std::visit([&](auto& x)
 		{
+			float InnerRange = x.first.Pos->Rr[0];
+			float OuterRange = x.first.Pos->Rr[x.first.Pos->NRr - 1];
 			float Depth = x.first.Pos->Rz[pancake];
-	//TODO: this may cause issues in 2D. Are radials always all the same?
-	float RMin = x.first.Pos->Rr[0];
-	float RMax = x.first.Pos->Rr[x.first.Pos->NRr - 1];
-	corners.Add(FVector(RMin + RMax, RMin + RMax, -Depth));
-	corners.Add(FVector(RMin - RMax, RMin + RMax, -Depth));
-	corners.Add(FVector(RMin + RMax, RMin - RMax, -Depth));
-	corners.Add(FVector(RMin - RMax, RMin - RMax, -Depth));
+			for (int i = 0; i < x.first.Pos->Ntheta; ++i)
+			{
+				float theta = FMath::DegreesToRadians(x.first.Pos->theta[i]);
+				float CosTheta = FMath::Cos(theta);
+				float SinTheta = FMath::Sin(theta);
+				vertices.Add(FVector(InnerRange * CosTheta, InnerRange * SinTheta, -Depth));
+				vertices.Add(FVector(OuterRange * CosTheta, OuterRange * SinTheta, -Depth));
+			}
 		}, params);
 }
 
