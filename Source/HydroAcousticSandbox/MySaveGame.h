@@ -14,4 +14,12 @@ class HYDROACOUSTICSANDBOX_API UMySaveGame : public USaveGame
 {
 	GENERATED_BODY()
 	
+	UPROPERTY(VisibleAnywhere, Category = Saving)
+	FString HycomURL;
+
+	UPROPERTY(VisibleAnywhere, Category = Saving)
+	FString SaveSlotName;
+
+	UPROPERTY(VisibleAnywhere, Category = Saving)
+	uint32 UserIndex;
 };
