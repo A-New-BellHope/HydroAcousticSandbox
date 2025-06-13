@@ -297,8 +297,16 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 		"[" + std::to_string(LatitudeIndexLow) + ":1:" + std::to_string(LatitudeIndexHigh) + "]" +
 		"[" + std::to_string(LongitudeIndexLow) + ":1:" + std::to_string(LongitudeIndexHigh) + "]";
 
-	if (LastURL == water_column) {
+	/*if (LastURL == water_column) {
 		SoundSpeed.Insert(SoundSpeedCache, 0);
+		return true;
+	}*/
+
+	if (USaveHycom* LoadedGame = Cast<USaveHycom>(UGameplayStatics::LoadGameFromSlot("Test", 0)))
+	{
+		// The operation was successful, so LoadedGame now contains the data we saved earlier.
+		UE_LOG(LogTemp, Warning, TEXT("LOADED: %s"), *LoadedGame->SaveSlotName);
+		SoundSpeed.Insert(LoadedGame->SaveData.SoundSpeedCache, 0);
 		return true;
 	}
 
