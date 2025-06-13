@@ -389,6 +389,17 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 	}
 
 	SoundSpeed.Insert(SoundSpeedCache, 0);
+	if (USaveHycom* SaveGameInstance = Cast<USaveHycom>(UGameplayStatics::CreateSaveGameObject(USaveHycom::StaticClass())))
+	{
+		SaveGameInstance->SaveData.HycomURL.append(water_column);
+		SaveGameInstance->SaveData.SoundSpeedCache.Append(SoundSpeedCache);
+
+		if (UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveSlotName, SaveGameInstance->UserIndex))
+		{
+			// Save succeeded.
+			UE_LOG(LogTemp, Warning, TEXT("Save was successful!"));
+		}
+	}
 	LastURL = water_column;
 
 	return true;
