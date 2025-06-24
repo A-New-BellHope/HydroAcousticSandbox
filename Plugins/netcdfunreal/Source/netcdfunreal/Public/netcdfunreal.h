@@ -61,6 +61,8 @@ private:
 		const size_t NumberSamples,
 		TArray<double>& Converted) const;
 
+	FString MakeSaveFileName(const std::string str);
+
 private:
 
 	void*	NetCDFLibraryHandle;
