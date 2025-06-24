@@ -280,6 +280,7 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 	TArray<double>& SoundSpeed)
 {
 	std::string url = TCHAR_TO_UTF8(*DatasetURL);
+	FString SaveName = MakeSaveFileName(url);
 	std::string water_column = url + "?depth" +
 		"[" + std::to_string(DepthIndexLow) + ":1:" + std::to_string(DepthIndexHigh) + "]" +
 		",lat"
@@ -302,7 +303,7 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 		return true;
 	}*/
 
-	if (USaveHycom* LoadedGame = Cast<USaveHycom>(UGameplayStatics::LoadGameFromSlot("Test", 0)))
+	if (USaveHycom* LoadedGame = Cast<USaveHycom>(UGameplayStatics::LoadGameFromSlot(SaveName, 0)))
 	{
 		// The operation was successful, so LoadedGame now contains the data we saved earlier.
 		UE_LOG(LogTemp, Warning, TEXT("LOADED: %s"), *LoadedGame->SaveSlotName);
@@ -401,6 +402,7 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 	{
 		SaveGameInstance->SaveData.HycomURL.append(water_column);
 		SaveGameInstance->SaveData.SoundSpeedCache.Append(SoundSpeedCache);
+		SaveGameInstance->SaveSlotName = SaveName;
 
 		if (UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveSlotName, SaveGameInstance->UserIndex))
 		{
@@ -490,6 +492,19 @@ bool FnetcdfunrealModule::HYCOMShortToDoubleWithScale(
 	}
 
 	return true;
+}
+
+FString FnetcdfunrealModule::MakeSaveFileName(const std::string str)
+{
+	FString SaveFileName = "";
+
+	std::cout << "Splitting: " << str << '\n';
+	std::size_t found = str.find_last_of("/");
+	std::cout << " url: " << str.substr(0, found) << '\n';
+	std::cout << " Save file name: " << str.substr(found + 1) << '\n';
+	SaveFileName = str.substr(found + 1).c_str();
+
+	return SaveFileName;
 }
 
 
