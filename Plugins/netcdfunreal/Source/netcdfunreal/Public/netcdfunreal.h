@@ -63,6 +63,10 @@ private:
 
 	FString MakeSaveFileName(const std::string str);
 
+	bool SaveHYCOMSSP(FString SlotName, std::string HYCOMUrl);
+
+	bool LoadHYCOMSSP(FString SlotName, TArray<double> LoadSoundSpeed);
+
 private:
 
 	void*	NetCDFLibraryHandle;
