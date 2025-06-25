@@ -298,18 +298,7 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 		"[" + std::to_string(LatitudeIndexLow) + ":1:" + std::to_string(LatitudeIndexHigh) + "]" +
 		"[" + std::to_string(LongitudeIndexLow) + ":1:" + std::to_string(LongitudeIndexHigh) + "]";
 
-	/*if (LastURL == water_column) {
-		SoundSpeed.Insert(SoundSpeedCache, 0);
-		return true;
-	}*/
-
-	if (USaveHycom* LoadedGame = Cast<USaveHycom>(UGameplayStatics::LoadGameFromSlot(SaveName, 0)))
-	{
-		// The operation was successful, so LoadedGame now contains the data we saved earlier.
-		UE_LOG(LogTemp, Warning, TEXT("LOADED: %s"), *LoadedGame->SaveSlotName);
-		SoundSpeed.Insert(LoadedGame->SaveData.SoundSpeedCache, 0);
-		return true;
-	}
+	LoadHYCOMSSP(SaveName, SoundSpeed);
 
 	UE_LOGFMT(LogTemp, Warning, "Loading net file {0}", water_column.c_str());
 	auto start = std::chrono::high_resolution_clock::now();
@@ -398,18 +387,7 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 	}
 
 	SoundSpeed.Insert(SoundSpeedCache, 0);
-	if (USaveHycom* SaveGameInstance = Cast<USaveHycom>(UGameplayStatics::CreateSaveGameObject(USaveHycom::StaticClass())))
-	{
-		SaveGameInstance->SaveData.HycomURL.append(water_column);
-		SaveGameInstance->SaveData.SoundSpeedCache.Append(SoundSpeedCache);
-		SaveGameInstance->SaveSlotName = SaveName;
-
-		if (UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveSlotName, SaveGameInstance->UserIndex))
-		{
-			// Save succeeded.
-			UE_LOG(LogTemp, Warning, TEXT("Save was successful!"));
-		}
-	}
+	SaveHYCOMSSP(SaveName, water_column);
 	LastURL = water_column;
 
 	return true;
@@ -494,6 +472,11 @@ bool FnetcdfunrealModule::HYCOMShortToDoubleWithScale(
 	return true;
 }
 
+/// <summary>
+/// Turns the HYCOM url into a file with the characters after the last /
+/// </summary>
+/// <param name="str"></param>
+/// <returns>FString that can be used as save file name</returns>
 FString FnetcdfunrealModule::MakeSaveFileName(const std::string str)
 {
 	FString SaveFileName = "";
@@ -505,6 +488,51 @@ FString FnetcdfunrealModule::MakeSaveFileName(const std::string str)
 	SaveFileName = str.substr(found + 1).c_str();
 
 	return SaveFileName;
+}
+
+/// <summary>
+/// Saves the HYCOM parameters
+/// </summary>
+/// <param name="SlotName">What the save file will be named</param>
+/// <param name="HYCOMUrl">Saves the whole HYCOM url</param>
+/// <returns>Returns if the function succeeded or not</returns>
+bool FnetcdfunrealModule::SaveHYCOMSSP(FString SlotName, std::string HYCOMUrl)
+{
+	// Makes a save file if there isn't one
+	if (USaveHycom* SaveGameInstance = Cast<USaveHycom>(UGameplayStatics::CreateSaveGameObject(USaveHycom::StaticClass())))
+	{
+		// Add the peremeters to the save game instance
+		SaveGameInstance->SaveData.HycomURL.append(HYCOMUrl);
+		SaveGameInstance->SaveData.SoundSpeedCache.Append(SoundSpeedCache);
+		SaveGameInstance->SaveSlotName = SlotName;
+
+		if (UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveSlotName, SaveGameInstance->UserIndex))
+		{
+			// Save succeeded.
+			UE_LOG(LogTemp, Warning, TEXT("Save was successful!"));
+			return true;
+		}
+	}
+	return false;
+}
+
+/// <summary>
+/// Loads the HYCOM save if it exsists
+/// </summary>
+/// <param name="SlotName"></param>
+/// <param name="LoadSoundSpeed"></param>
+/// <returns>Returns if the function succeeded or not</returns>
+bool FnetcdfunrealModule::LoadHYCOMSSP(FString SlotName, TArray<double> LoadSoundSpeed)
+{
+	// Check if there is a save to load
+	if (USaveHycom* LoadedGame = Cast<USaveHycom>(UGameplayStatics::LoadGameFromSlot(SlotName, 0)))
+	{
+		// The operation was successful, so LoadedGame now contains the data we saved earlier.
+		UE_LOG(LogTemp, Warning, TEXT("LOADED: %s"), *LoadedGame->SaveSlotName);
+		LoadSoundSpeed.Insert(LoadedGame->SaveData.SoundSpeedCache, 0);
+		return true;
+	}
+	return false;
 }
 
 
