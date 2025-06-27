@@ -280,7 +280,7 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 	TArray<double>& SoundSpeed)
 {
 	std::string url = TCHAR_TO_UTF8(*DatasetURL);
-	FString SaveName = MakeSaveFileName(url);
+	FString SaveName = url.c_str();
 	std::string water_column = url + "?depth" +
 		"[" + std::to_string(DepthIndexLow) + ":1:" + std::to_string(DepthIndexHigh) + "]" +
 		",lat"
