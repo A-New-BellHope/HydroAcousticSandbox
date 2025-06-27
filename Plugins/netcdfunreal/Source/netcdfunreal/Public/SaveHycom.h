@@ -39,10 +39,4 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = Saving)
 	uint32 UserIndex;
-
-	UFUNCTION()
-	bool SaveGame();
-
-	UFUNCTION()
-	bool LoadGame();
 };

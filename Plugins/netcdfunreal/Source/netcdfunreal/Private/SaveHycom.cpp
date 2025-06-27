@@ -3,17 +3,7 @@
 
 #include "SaveHycom.h"
 
-USaveHycom::USaveHycom() : SaveSlotName("Test"), UserIndex(0)
+USaveHycom::USaveHycom() : SaveSlotName("Default"), UserIndex(0)
 {
 
-}
-
-bool USaveHycom::SaveGame()
-{
-	return false;
-}
-
-bool USaveHycom::LoadGame()
-{
-	return false;
 }
