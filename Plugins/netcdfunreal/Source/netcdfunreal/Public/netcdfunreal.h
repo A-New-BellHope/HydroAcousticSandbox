@@ -65,7 +65,7 @@ private:
 
 	bool SaveHYCOMSSP(FString SlotName, std::string HYCOMUrl);
 
-	bool LoadHYCOMSSP(FString SlotName, TArray<double> LoadSoundSpeed);
+	bool LoadHYCOMSSP(FString SlotName, TArray<double>& LoadSoundSpeed);
 
 private:
 
