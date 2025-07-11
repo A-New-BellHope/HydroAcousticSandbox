@@ -280,7 +280,7 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 	TArray<double>& SoundSpeed)
 {
 	std::string url = TCHAR_TO_UTF8(*DatasetURL);
-	FString SaveName = url.c_str();
+	FString SaveName = FBase64::Encode(DatasetURL);
 	std::string water_column = url + "?depth" +
 		"[" + std::to_string(DepthIndexLow) + ":1:" + std::to_string(DepthIndexHigh) + "]" +
 		",lat"
@@ -297,8 +297,11 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 		"[" + std::to_string(DepthIndexLow) + ":1:" + std::to_string(DepthIndexHigh) + "]" +
 		"[" + std::to_string(LatitudeIndexLow) + ":1:" + std::to_string(LatitudeIndexHigh) + "]" +
 		"[" + std::to_string(LongitudeIndexLow) + ":1:" + std::to_string(LongitudeIndexHigh) + "]";
-
-	LoadHYCOMSSP(SaveName, SoundSpeed);
+	
+	if (LastURL == water_column)
+	{
+		LoadHYCOMSSP(SaveName, SoundSpeed);
+	}
 
 	UE_LOGFMT(LogTemp, Warning, "Loading net file {0}", water_column.c_str());
 	auto start = std::chrono::high_resolution_clock::now();
@@ -522,7 +525,7 @@ bool FnetcdfunrealModule::SaveHYCOMSSP(FString SlotName, std::string HYCOMUrl)
 /// <param name="SlotName"></param>
 /// <param name="LoadSoundSpeed"></param>
 /// <returns>Returns if the function succeeded or not</returns>
-bool FnetcdfunrealModule::LoadHYCOMSSP(FString SlotName, TArray<double> LoadSoundSpeed)
+bool FnetcdfunrealModule::LoadHYCOMSSP(FString SlotName, TArray<double>& LoadSoundSpeed)
 {
 	// Check if there is a save to load
 	if (USaveHycom* LoadedGame = Cast<USaveHycom>(UGameplayStatics::LoadGameFromSlot(SlotName, 0)))
