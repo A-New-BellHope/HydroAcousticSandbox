@@ -61,11 +61,9 @@ private:
 		const size_t NumberSamples,
 		TArray<double>& Converted) const;
 
-	FString MakeSaveFileName(const std::string str);
+	bool SaveHYCOMSSP(const FString& SlotName, const std::string HYCOMUrl);
 
-	bool SaveHYCOMSSP(FString SlotName, std::string HYCOMUrl);
-
-	bool LoadHYCOMSSP(FString SlotName, TArray<double>& LoadSoundSpeed);
+	bool LoadHYCOMSSP(const FString& SlotName, TArray<double>& LoadSoundSpeed);
 
 private:
 
