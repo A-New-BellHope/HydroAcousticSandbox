@@ -65,6 +65,8 @@ private:
 
 	bool LoadHYCOMSSP(const FString& SlotName, TArray<double>& LoadSoundSpeed);
 
+	FString HashFilename(std::string Name);
+
 private:
 
 	void*	NetCDFLibraryHandle;
