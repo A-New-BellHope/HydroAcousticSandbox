@@ -280,9 +280,6 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 	TArray<double>& SoundSpeed)
 {
 	std::string url = TCHAR_TO_UTF8(*DatasetURL);
-	std::string buffer = TCHAR_TO_UTF8(*DatasetURL);
-	FString SaveName = FBase64::Encode(buffer.erase(6, buffer.size()).c_str(), EBase64Mode::Standard);
-
 	std::string water_column = url + "?depth" +
 		"[" + std::to_string(DepthIndexLow) + ":1:" + std::to_string(DepthIndexHigh) + "]" +
 		",lat"
@@ -299,8 +296,8 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 		"[" + std::to_string(DepthIndexLow) + ":1:" + std::to_string(DepthIndexHigh) + "]" +
 		"[" + std::to_string(LatitudeIndexLow) + ":1:" + std::to_string(LatitudeIndexHigh) + "]" +
 		"[" + std::to_string(LongitudeIndexLow) + ":1:" + std::to_string(LongitudeIndexHigh) + "]";
-	
-	if (LoadHYCOMSSP(*SaveName, SoundSpeed))	return true;
+
+	if (LoadHYCOMSSP(HashFilename(water_column), SoundSpeed))	return true;
 
 	UE_LOGFMT(LogTemp, Warning, "Loading net file {0}", water_column.c_str());
 	auto start = std::chrono::high_resolution_clock::now();
@@ -389,8 +386,7 @@ bool FnetcdfunrealModule::LoadHYCOMSoundSpeed(const FString& DatasetURL,
 	}
 
 	SoundSpeed.Insert(SoundSpeedCache, 0);
-	SaveHYCOMSSP(*SaveName, water_column);
-	LastURL = water_column;
+	SaveHYCOMSSP(HashFilename(water_column), water_column);
 
 	return true;
 }
@@ -520,6 +516,17 @@ bool FnetcdfunrealModule::LoadHYCOMSSP(const FString& SlotName, TArray<double>& 
 	return false;
 }
 
+/// <summary>
+/// Hash function for the SSP game save.
+/// </summary>
+/// <param name="Name">String that will be hashed.</param>
+/// <returns>Hash string</returns>
+FString FnetcdfunrealModule::HashFilename(std::string Name)
+{
+	uint64 temp = CityHash64(Name.c_str(), 32);
+
+	return FString::Printf(TEXT("%llu"), temp);
+}
 
 #undef LOCTEXT_NAMESPACE
 	
