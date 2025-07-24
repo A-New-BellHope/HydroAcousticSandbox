@@ -523,7 +523,7 @@ bool FnetcdfunrealModule::LoadHYCOMSSP(const FString& SlotName, TArray<double>& 
 /// <returns>Hash string</returns>
 FString FnetcdfunrealModule::HashFilename(std::string Name)
 {
-	uint64 temp = CityHash64(Name.c_str(), 32);
+	uint64 temp = CityHash64(Name.c_str(), Name.size());
 
 	return FString::Printf(TEXT("%llu"), temp);
 }
