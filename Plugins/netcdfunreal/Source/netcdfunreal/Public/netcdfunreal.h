@@ -9,9 +9,12 @@
 
 #include "Modules/ModuleManager.h"
 #include "Logging/StructuredLog.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "netcdfunrealLibrary/include/netcdf"
 #include "TeosSea.h"
+#include "SaveHycom.h"
+
 
 class FnetcdfunrealModule : public IModuleInterface
 {
@@ -58,6 +61,12 @@ private:
 		const size_t NumberSamples,
 		TArray<double>& Converted) const;
 
+	bool SaveHYCOMSSP(const FString& SlotName, const std::string HYCOMUrl);
+
+	bool LoadHYCOMSSP(const FString& SlotName, TArray<double>& LoadSoundSpeed);
+
+	FString HashFilename(std::string Name);
+
 private:
 
 	void*	NetCDFLibraryHandle;
@@ -75,5 +84,4 @@ private:
 	TArray<double> LatitudeCache;
 	TArray<double> TimeCache;
 	TArray<double> SoundSpeedCache;
-
 };
