@@ -44,6 +44,10 @@ public:
 		const int& NumX, const int& NumY, const int& NumZx, const int& NumZy,
 		const FVector& LowerBound, const FVector& UpperBound);
 
+	UFUNCTION(BluePrintCallable, Category = "Bellhop Acoustic Library")
+	void UpdateSSPLineTexture(UMaterialInstanceDynamic* Mat,
+		const int& NumSamples, const FVector& Top, const FVector& Bottom);
+
 private:
 	//helpers
 	UTexture2D* CreateTexture(const TArray<unsigned int>& Data,
