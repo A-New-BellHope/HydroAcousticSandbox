@@ -231,7 +231,23 @@ void FbellhopModule::SetBottom(const TArray<double>& Depths,
 			{ YGrid[0], YGrid.Last() });
 		UpdateBoundary3D(std::get<RunType3D>(params).first.bdinfo->bot,
 			Depths, XGrid, YGrid);
+		_XGrid = XGrid;
+		_YGrid = YGrid;
+		_Depths = Depths;
 	}
+}
+
+bool FbellhopModule::GetBottomDepth(const float& x, const float& y, float& depth) const
+{
+	int ix = Algo::UpperBound(_XGrid, x);
+	int iy = Algo::UpperBound(_YGrid, y);
+	if (ix > 0 && iy > 0 && ix < _XGrid.Num() && iy < _YGrid.Num())
+	{
+		int idx = (ix - 1) * _YGrid.Num() + (iy - 1);
+		depth = (float) -1.0*_Depths[idx];
+		return true;
+	}
+	return false;
 }
 
 /// <summary>
@@ -1372,7 +1388,7 @@ bool FbellhopModule::GetSoundSpeed(const FVector& Position, float& SoundSpeed)
 		bhc::VEC23<true> pos;
 		pos[0] = Position.X;
 		pos[1] = Position.Y;
-		pos[2] = Position.Z;
+		pos[2] = -Position.Z;
 		return bhc::get_ssp<true, true>(x.first, pos, SoundSpeed);
 	} else if (std::holds_alternative<RunTypeNx2D>(params))
 	{

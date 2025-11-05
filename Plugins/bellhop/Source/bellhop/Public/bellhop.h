@@ -69,6 +69,7 @@ public:
 	void SetBottom(const TArray<double>& Depths,
 		const TArray<double>& XGrid, const TArray<double>& YGrid = {},
 		bool O3D = false);
+	bool GetBottomDepth(const float& x, const float& y, float& depth) const;
 
 	//TODO: deprecate these
 	float GetSingleRayAltitude(const int& rayID) const;
@@ -180,7 +181,11 @@ private:
 	int32_t _Height;
 	int32_t _Bearings;
 	bool bTransmissionLossUpdated = false;
-	
+
+	TArray<double> _XGrid;
+	TArray<double> _YGrid;
+	TArray<double> _Depths;
+
 	//flags
 	bool recalculateRays;
 	bool working;
