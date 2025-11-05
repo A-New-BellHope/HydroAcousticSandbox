@@ -66,6 +66,13 @@ void ASSPVolume::SoundSpeedAtPoint(const FVector& x, float& SoundSpeed) const
 	Bellhop->GetSoundSpeed(x, SoundSpeed);
 }
 
+float ASSPVolume::GetDepthBelow(const FVector& x) const
+{
+	float ret;
+	Bellhop->GetBottomDepth(x[0], x[1], ret);
+	return ret;
+}
+
 
 void ASSPVolume::UpdateSSPTexture(UMaterialInstanceDynamic* Material,
 	const int& NumX, const int& NumY, const int& NumZx, const int& NumZy)
@@ -155,13 +162,13 @@ UpdateSSPLineTexture(UMaterialInstanceDynamic* Mat,
 	TArray<float> SoundSpeeds;
 	for (int i = 0; i < NumSamples; ++i) {
 		float ssp;
-		auto SamplePoint = FMath::Lerp(Top, Bottom, float(i) / float(NumSamples));
+		auto SamplePoint = FMath::Lerp(Bottom, Top, float(i) / float(NumSamples));
 		Bellhop->GetSoundSpeed(SamplePoint, ssp);
 		SoundSpeeds.Add(ssp);
 	}
 	TArray<unsigned int> Pixels;
 	ConvertToColor(SoundSpeeds, Pixels);
-	UTexture2D* tex = CreateTexture(Pixels, 1, NumSamples);
+	UTexture2D* tex = CreateTexture(Pixels, NumSamples, 1);
 	if (Mat)
 	{
 		Mat->SetTextureParameterValue(FName("SoundSpeedLine"), (UTexture*)tex);

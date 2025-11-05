@@ -36,6 +36,9 @@ public:
 	UFUNCTION(BluePrintCallable, Category = "Bellhop Acoustic Library")
 	void SoundSpeedAtPoint(const FVector& x, float& SoundSpeed) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	float GetDepthBelow(const FVector& x) const;
+
 	UFUNCTION(BluePrintCallable, Category = "Bellhop Acoustic Library")
 	void UpdateSSPTexture(UMaterialInstanceDynamic* Material,
 		const int& NumX, const int& NumY, const int& NumZx, const int& NumZy);
