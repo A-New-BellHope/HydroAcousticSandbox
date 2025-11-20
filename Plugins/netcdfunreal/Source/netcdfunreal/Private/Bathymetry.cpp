@@ -288,7 +288,7 @@ FVector ABathymetry::LatLongToPosition(
 		ResY *= -1.0;
 	}
 
-	return FVector(ResX, ResY, 0);
+	return FVector(ResY, ResX, 0);
 }
 
 /// <summary>
