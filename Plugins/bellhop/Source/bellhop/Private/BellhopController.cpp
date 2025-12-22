@@ -177,7 +177,7 @@ void ABellhopController::MunkProfile()
 	double d = 0.0;
 	double StepSize = 100.0;
 
-	double MaxDepth = FMath::Max(Bellhop->GetMaximumDepth(), -20000.0);
+	double MaxDepth = FMath::Max(-Bellhop->GetMaximumDepth(), -20000.0);
 
 	while (d > MaxDepth + 1.0) {
 		double zt = 2 * (-d - zc) / zc;
