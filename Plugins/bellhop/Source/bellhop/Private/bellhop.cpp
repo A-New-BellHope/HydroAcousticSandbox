@@ -250,6 +250,10 @@ bool FbellhopModule::GetBottomDepth(const float& x, const float& y, float& depth
 	return false;
 }
 
+double FbellhopModule::GetMaximumDepth() const {
+	return -1.0 * _Depths.Last();
+}
+
 /// <summary>
 /// Update the boundary data and set flags.
 /// No checking for size.
