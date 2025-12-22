@@ -55,6 +55,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 		void TestingFlattenSoundSpeedProfile();
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+		void MunkProfile();
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 		void MoveSource(const int& Source, const float& X);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 		void MoveSource3D(const int& Source, const FVector& position);

@@ -211,10 +211,22 @@ void ABathymetry::GetEarthSoundSpeed(const double& North, const double& East,
 			TArray<double> allLatitude;
 			TArray<double> allLongitude;
 			TArray<double> allTime;
-			EarthBathymetry->LoadHYCOMDepth(url, HexDepth);
-			EarthBathymetry->LoadHYCOMLatitude(url, allLatitude);
-			EarthBathymetry->LoadHYCOMLongitude(url, allLongitude);
-			EarthBathymetry->LoadHYCOMTime(url, allTime);
+			bool hycomSuccess = true;
+			hycomSuccess &= EarthBathymetry->LoadHYCOMDepth(url, HexDepth);
+			if (hycomSuccess) { hycomSuccess &= EarthBathymetry->LoadHYCOMLatitude(url, allLatitude); }
+			if (hycomSuccess) {
+				hycomSuccess &= EarthBathymetry->LoadHYCOMLongitude(url, allLongitude);
+			}
+			if (hycomSuccess) {
+				hycomSuccess &= EarthBathymetry->LoadHYCOMTime(url, allTime);
+			}
+
+			if (!hycomSuccess) {
+				ErrorMessage("Error: could not read HYCOM data. "
+					"Defaulting to a Munk profile ... returning.");
+				HYCOMDone = true;
+				return;
+			}
 
 			int southIndex = Algo::UpperBound(allLatitude, South) - 1;
 			int northIndex = Algo::UpperBound(allLatitude, North);

@@ -70,6 +70,7 @@ public:
 		const TArray<double>& XGrid, const TArray<double>& YGrid = {},
 		bool O3D = false);
 	bool GetBottomDepth(const float& x, const float& y, float& depth) const;
+	double GetMaximumDepth() const;
 
 	//TODO: deprecate these
 	float GetSingleRayAltitude(const int& rayID) const;
