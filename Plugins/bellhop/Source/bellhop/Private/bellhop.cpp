@@ -27,6 +27,12 @@ void LogBellhopOutput(const char* Message)
 	MarkedMessage += Message;
 	LogBellhop(MarkedMessage.c_str());
 }
+std::atomic<bool> bellhopDoneFlag(false);
+void BellhopDoneCallback()
+{
+	LogBellhop("Bellhop done callback called.");
+	bellhopDoneFlag.store(true);
+}
 
 FbellhopModule::FbellhopModule(): BellhopLibraryHandle(nullptr),
 recalculateRays(true),
@@ -476,7 +482,6 @@ void FbellhopModule::SetupDefaults(const bool& O3D, const bool& R3D)
 		}, params);
 }
 
-
 /// <summary>
 /// Run bellhop with current parameters.
 /// Call after modifying params in Unreal.
@@ -502,6 +507,31 @@ void FbellhopModule::RunBellhop()
 
 	working = false;
 	MarkBellhopRun(true);
+}
+
+/// <summary>
+/// Runs bellhop in the background so you can check progress.
+/// TODO: should implement a cancel, but has to change BHC.
+/// </summary>
+void FbellhopModule::BackgroundRunBellhop()
+{
+	if (working) {
+		//not safe to call multiple times
+		UE_LOG(LogTemp, Warning, TEXT("multiple calls to bellhop ... ignoring"));
+		return;
+	}
+
+	MarkBellhopRun(false);
+	bellhopDoneFlag.store(false);
+
+	std::visit([&](auto& x)
+		{
+			bhc::echo(x.first);
+			if (!bhc::run(x.first, x.second)) {
+				LogBellhop("Error in bhc::run. Check the log. ... continuing");
+			}
+			UpdateAllRays();
+		}, params);
 }
 
 /// <summary>
@@ -1555,6 +1585,21 @@ void FbellhopModule::GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
 }
 
 /// <summary>
+/// Return the percent done for long calculations.
+/// OK to call at any time.
+/// </summary>
+/// <returns>integer from 0 to 100 for bellhop progress</returns>
+int FbellhopModule::GetPercentDone()
+{
+	int ret = 0;
+	std::visit([&](auto& x)
+		{
+			ret = bhc::get_percent_progress(x.first);
+		}, params);
+	return ret;
+}
+
+/// <summary>
 /// Get the runtype. Code from bellhop.
 /// </summary>
 /// <returns>character code from bellhop</returns>
@@ -1758,6 +1803,7 @@ void FbellhopModule::ResetBellhopInitialization()
 	BellhopInitializaiton.numThreads = -1;
 	BellhopInitializaiton.outputCallback = &LogBellhopOutput;
 	BellhopInitializaiton.prtCallback = &LogBellhopPRT;
+	BellhopInitializaiton.completedCallback = &BellhopDoneCallback;
 	BellhopInitializaiton.useRayCopyMode = false;
 }
 

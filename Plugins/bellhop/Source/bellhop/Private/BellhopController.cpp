@@ -507,6 +507,11 @@ bool ABellhopController::IsTransmissionLossMode() const
 	return Bellhop->IsTransmissionLossMode();
 }
 
+int ABellhopController::GetPercentDone()
+{
+	return Bellhop->GetPercentDone();
+}
+
 /// <summary>
 /// Check that the source location is inside the SSP
 ///   and over the bathymetry.

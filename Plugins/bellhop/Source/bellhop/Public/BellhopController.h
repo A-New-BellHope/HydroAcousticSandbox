@@ -118,6 +118,8 @@ public:
 	void SetRayMode();
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	void SetTransmissionLossMode(ETransmissionLossMode tl);
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	int GetPercentDone();
 
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	bool CheckSource(const FVector& Location);
