@@ -51,6 +51,7 @@ public:
 	//interface
 	int RunBellhopFile(FString fname, bool O3D = false, bool R3D = false);
 	void RunBellhop();
+	void BackgroundRunBellhop();
 	void SetupDefaults(const bool& O3D = false, const bool& R3D = false);
 	FString GetBellhopDirectory();
 	FString GetBellhopEnvironmentDirectory();
@@ -128,6 +129,7 @@ public:
 		int32_t& Width, int32_t& Height, int32_t& Bearings);
 	void GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
 		TArray<float>& AllWidth, TArray<float>& AllHeight, TArray<float>& AllBearings);
+	int GetPercentDone();
 	void GetCorners(const int& bearing, TArray<FVector>& corners);
 	void GetCylinder(const int& radial, TArray<FVector>& vertices);
 	void GetHorizontal(const int& pancake, TArray<FVector>& vertices);
