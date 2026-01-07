@@ -7,6 +7,7 @@
 #include <variant>
 #include <map>
 #include <vector>
+#include <functional>
 
 #include "Modules/ModuleManager.h"
 #include "HAL/PlatformProcess.h"
@@ -51,7 +52,7 @@ public:
 	//interface
 	int RunBellhopFile(FString fname, bool O3D = false, bool R3D = false);
 	void RunBellhop();
-	void BackgroundRunBellhop();
+	void BackgroundRunBellhop(std::function<void(void)> doneEvent);
 	void SetupDefaults(const bool& O3D = false, const bool& R3D = false);
 	FString GetBellhopDirectory();
 	FString GetBellhopEnvironmentDirectory();

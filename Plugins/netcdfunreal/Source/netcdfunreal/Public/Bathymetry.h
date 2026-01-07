@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Logging/StructuredLog.h"
+#include "DesktopPlatformModule.h"
+#include "IDesktopPlatform.h"
+#include "Framework/Application/SlateApplication.h"
 #include "netcdfunreal.h"
 #include <algorithm>
 #include "Bathymetry.generated.h"
@@ -27,6 +30,8 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 
+	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
+	bool OpenGEBCO(FString& Filename);
 	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
 	bool LoadEarthFile(const FString& Filename);
 
