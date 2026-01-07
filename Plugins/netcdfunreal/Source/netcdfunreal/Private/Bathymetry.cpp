@@ -86,6 +86,38 @@ bool ABathymetry::SetOrigin(const double& InOriginLatitude,
 }
 
 /// <summary>
+/// Popup a dialog to open the gebco file.
+/// Not very general. Intended to be called from blueprints.
+/// </summary>
+/// <param name="Filename"></param>
+/// <returns>success</returns>
+bool ABathymetry::OpenGEBCO(FString& Filename)
+{
+	TArray<FString> OutFileNames;
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	bool bOpened = false;
+	if (DesktopPlatform)
+	{
+		const void* ParentWindowHandle = FSlateApplication::Get().GetActiveTopLevelWindow()->GetNativeWindow()->GetOSWindowHandle();
+		bOpened = DesktopPlatform->OpenFileDialog(
+			ParentWindowHandle,
+			TEXT("Open GEBCO Bathymetry File"),
+			TEXT(""),
+			TEXT(""),
+			TEXT("NetCDF Files (*.nc)|*.nc"),
+			EFileDialogFlags::None,
+			OutFileNames
+		);
+	}
+	if (bOpened && OutFileNames.Num() > 0)
+	{
+		Filename = OutFileNames[0];
+		return LoadEarthFile(Filename);
+	}
+	return false;
+}
+
+/// <summary>
 /// Load the nc file with the bathymetry data.
 /// Probably downloaded from gebco.
 /// </summary>

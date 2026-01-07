@@ -187,7 +187,6 @@ void ATransmissionLoss3D::UpdateTextureBearing(UMaterialInstanceDynamic* Materia
 	if (Material)
 	{
 		Material->SetTextureParameterValue(FName("TransmissionLoss"), tex);
-		UE_LOG(LogTemp, Warning, TEXT("updated texture"));
 	}
 
 }

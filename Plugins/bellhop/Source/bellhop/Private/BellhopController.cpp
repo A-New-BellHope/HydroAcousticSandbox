@@ -64,6 +64,27 @@ void ABellhopController::RunBellhop()
 	);
 }
 
+void ABellhopController::BackgroundRunBellhop()
+{
+	if (BellhopRunning) {
+		UE_LOG(LogTemp, Warning, TEXT("Warning (background): only one bellhop run at a time ... ignoring."));
+		return;
+	}
+
+	BellhopRunning = true;
+	BellhopDone = false;
+	UE_LOG(LogTemp, Warning, TEXT("Starting bellhop run"));
+	std::function<void(void)> callback = std::bind(&ABellhopController::BackgroundRunComplete, this);
+	Bellhop->BackgroundRunBellhop(callback);
+}
+
+void ABellhopController::BackgroundRunComplete()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Done bellhop run"));
+	BellhopRunning = false;
+	BellhopDone = true;
+}
+
 void ABellhopController::ReadFile(const FString& BellhopRoot, const bool& O3D, const bool& R3D)
 {
 	if (BellhopRunning) {

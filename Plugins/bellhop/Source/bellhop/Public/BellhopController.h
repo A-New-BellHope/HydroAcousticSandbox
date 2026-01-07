@@ -41,7 +41,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	void SetupDefaults(const bool& O3D, const bool& R3D);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
-		void RunBellhop();
+	void RunBellhop();
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	void BackgroundRunBellhop();
 	UFUNCTION(BluePrintCallable, Category = "Bellhop Acoustic Library")
 		void ReadFile(const FString& BellhopRoot, const bool& O3D, const bool& R3D);
 	UFUNCTION(BluePrintCallable, Category = "Bellhop Acoustic Library")
@@ -133,6 +135,8 @@ public:
 	FEnvfileDoneEvent OnEnvfileDoneEvent;
 	UPROPERTY(BlueprintAssignable, Category = "Bellhop Acoustic Library")
 	FBellhopDoneEvent OnBellhopDoneEvent;
+
+	void BackgroundRunComplete();
 
 private:
 	//helpers
