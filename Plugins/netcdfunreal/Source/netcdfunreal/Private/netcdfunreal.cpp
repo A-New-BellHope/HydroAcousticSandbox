@@ -420,21 +420,32 @@ bool FnetcdfunrealModule::ReadVariable(
 	DatasetURL += "?";
 	DatasetURL += Variable;
 	DatasetURL += Range;
-	netCDF::NcFile remoteFile(DatasetURL, netCDF::NcFile::read);
-	netCDF::NcDim dim = remoteFile.getDim(Variable);
-	netCDF::NcVar var = remoteFile.getVar(Variable);
 
-	TSharedPtr<double> buffer(new double[dim.getSize()]);
+	try {
+		netCDF::NcFile remoteFile(DatasetURL, netCDF::NcFile::read);
+		netCDF::NcDim dim = remoteFile.getDim(Variable);
+		netCDF::NcVar var = remoteFile.getVar(Variable);
 
-	var.getVar(buffer.Get());
+		TSharedPtr<double> buffer(new double[dim.getSize()]);
 
-	Values.SetNumUninitialized(dim.getSize());
-	for (int i = 0; i < dim.getSize(); ++i) {
-		Values[i] = buffer.Get()[i];
+		var.getVar(buffer.Get());
+
+		Values.SetNumUninitialized(dim.getSize());
+		for (int i = 0; i < dim.getSize(); ++i) {
+			Values[i] = buffer.Get()[i];
+		}
+
+		remoteFile.close();
+		return true;
 	}
-
-	remoteFile.close();
-	return true;
+	catch (netCDF::exceptions::NcException& e) {
+		std::string err = "Error: exception reading variable " +
+			Variable + " from " + DatasetURL + "\n" +
+			e.what() + "\n";
+		FString Message = err.c_str();
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *Message);
+	}
+	return false;
 }
 
 /// <summary>

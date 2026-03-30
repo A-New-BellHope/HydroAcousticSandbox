@@ -11,7 +11,7 @@ public class netcdfunreal : ModuleRules
 
         PublicIncludePaths.AddRange(
 			new string[] {
-                "../../../Plugins/netcdfunreal/Source/ThirdParty/netcdfunrealLibrary/include"
+                //"../../../Plugins/netcdfunreal/Source/ThirdParty/netcdfunrealLibrary/include"
 				// ... add public include paths required here ...
 			}
             );
@@ -32,6 +32,10 @@ public class netcdfunreal : ModuleRules
 				"CoreUObject",
                 "Engine",
 				"Core",
+				"DesktopPlatform",
+				"Slate",
+				"SlateCore",
+				"UMG",
 				"netcdfunrealLibrary",
 				"Projects"
 				// ... add other public dependencies that you statically link with here ...
