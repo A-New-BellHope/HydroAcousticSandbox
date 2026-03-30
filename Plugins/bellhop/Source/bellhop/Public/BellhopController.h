@@ -41,7 +41,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	void SetupDefaults(const bool& O3D, const bool& R3D);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
-		void RunBellhop();
+	void RunBellhop();
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	void BackgroundRunBellhop();
 	UFUNCTION(BluePrintCallable, Category = "Bellhop Acoustic Library")
 		void ReadFile(const FString& BellhopRoot, const bool& O3D, const bool& R3D);
 	UFUNCTION(BluePrintCallable, Category = "Bellhop Acoustic Library")
@@ -54,6 +56,8 @@ public:
 		void AdjustSoundSpeedProfile(const int& Depth, const float& SoundSpeed);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 		void TestingFlattenSoundSpeedProfile();
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+		void MunkProfile();
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 		void MoveSource(const int& Source, const float& X);
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
@@ -116,6 +120,8 @@ public:
 	void SetRayMode();
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	void SetTransmissionLossMode(ETransmissionLossMode tl);
+	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
+	int GetPercentDone();
 
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 	bool CheckSource(const FVector& Location);
@@ -129,6 +135,8 @@ public:
 	FEnvfileDoneEvent OnEnvfileDoneEvent;
 	UPROPERTY(BlueprintAssignable, Category = "Bellhop Acoustic Library")
 	FBellhopDoneEvent OnBellhopDoneEvent;
+
+	void BackgroundRunComplete();
 
 private:
 	//helpers

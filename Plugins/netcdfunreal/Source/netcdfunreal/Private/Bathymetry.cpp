@@ -86,6 +86,38 @@ bool ABathymetry::SetOrigin(const double& InOriginLatitude,
 }
 
 /// <summary>
+/// Popup a dialog to open the gebco file.
+/// Not very general. Intended to be called from blueprints.
+/// </summary>
+/// <param name="Filename"></param>
+/// <returns>success</returns>
+bool ABathymetry::OpenGEBCO(FString& Filename)
+{
+	TArray<FString> OutFileNames;
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	bool bOpened = false;
+	if (DesktopPlatform)
+	{
+		const void* ParentWindowHandle = FSlateApplication::Get().GetActiveTopLevelWindow()->GetNativeWindow()->GetOSWindowHandle();
+		bOpened = DesktopPlatform->OpenFileDialog(
+			ParentWindowHandle,
+			TEXT("Open GEBCO Bathymetry File"),
+			TEXT(""),
+			TEXT(""),
+			TEXT("NetCDF Files (*.nc)|*.nc"),
+			EFileDialogFlags::None,
+			OutFileNames
+		);
+	}
+	if (bOpened && OutFileNames.Num() > 0)
+	{
+		Filename = OutFileNames[0];
+		return LoadEarthFile(Filename);
+	}
+	return false;
+}
+
+/// <summary>
 /// Load the nc file with the bathymetry data.
 /// Probably downloaded from gebco.
 /// </summary>
@@ -211,10 +243,22 @@ void ABathymetry::GetEarthSoundSpeed(const double& North, const double& East,
 			TArray<double> allLatitude;
 			TArray<double> allLongitude;
 			TArray<double> allTime;
-			EarthBathymetry->LoadHYCOMDepth(url, HexDepth);
-			EarthBathymetry->LoadHYCOMLatitude(url, allLatitude);
-			EarthBathymetry->LoadHYCOMLongitude(url, allLongitude);
-			EarthBathymetry->LoadHYCOMTime(url, allTime);
+			bool hycomSuccess = true;
+			hycomSuccess &= EarthBathymetry->LoadHYCOMDepth(url, HexDepth);
+			if (hycomSuccess) { hycomSuccess &= EarthBathymetry->LoadHYCOMLatitude(url, allLatitude); }
+			if (hycomSuccess) {
+				hycomSuccess &= EarthBathymetry->LoadHYCOMLongitude(url, allLongitude);
+			}
+			if (hycomSuccess) {
+				hycomSuccess &= EarthBathymetry->LoadHYCOMTime(url, allTime);
+			}
+
+			if (!hycomSuccess) {
+				ErrorMessage("Error: could not read HYCOM data. "
+					"Defaulting to a Munk profile ... returning.");
+				HYCOMDone = true;
+				return;
+			}
 
 			int southIndex = Algo::UpperBound(allLatitude, South) - 1;
 			int northIndex = Algo::UpperBound(allLatitude, North);

@@ -27,6 +27,20 @@ void LogBellhopOutput(const char* Message)
 	MarkedMessage += Message;
 	LogBellhop(MarkedMessage.c_str());
 }
+//TODO: globals may be improved
+std::function<void(void)> BellhopDoneEvent;
+FbellhopModule* GbellhopModulePtr = nullptr;
+void BellhopDoneCallback()
+{
+	LogBellhop("Bellhop done callback called.");
+	if(GbellhopModulePtr)
+	{
+		GbellhopModulePtr->MarkBellhopRun(true);
+	}
+	if (BellhopDoneEvent) {
+		BellhopDoneEvent();
+	}
+}
 
 FbellhopModule::FbellhopModule(): BellhopLibraryHandle(nullptr),
 recalculateRays(true),
@@ -104,6 +118,10 @@ bool FbellhopModule::IsBellhopSetup()
 
 void FbellhopModule::MarkBellhopRun(const bool& State)
 { 
+	if(State)
+	{
+		UpdateAllRays();
+	}
 	bBellhopRun = State;
 
 	if (IsRayMode()) {
@@ -223,7 +241,7 @@ void FbellhopModule::SetBottom(const TArray<double>& Depths,
 		//Not intended to be called too often, so reallocation is safest.
 		bhc::extsetup_altimetry(std::get<RunType3D>(params).first, { 2,2 });
 		bhc::IORI2<true> Size = { XGrid.Num(), YGrid.Num() };
-		bhc::extsetup_bathymetry(std::get<RunType3D>(params).first, Size);
+		bhc::extsetup_bathymetry(std::get<RunType3D>(params).first, Size, 0);
 
 		UpdateBoundary3D(std::get<RunType3D>(params).first.bdinfo->top,
 			{ 0, 0, 0, 0 },
@@ -248,6 +266,10 @@ bool FbellhopModule::GetBottomDepth(const float& x, const float& y, float& depth
 		return true;
 	}
 	return false;
+}
+
+double FbellhopModule::GetMaximumDepth() const {
+	return -1.0 * _Depths.Last();
 }
 
 /// <summary>
@@ -472,7 +494,6 @@ void FbellhopModule::SetupDefaults(const bool& O3D, const bool& R3D)
 		}, params);
 }
 
-
 /// <summary>
 /// Run bellhop with current parameters.
 /// Call after modifying params in Unreal.
@@ -490,14 +511,40 @@ void FbellhopModule::RunBellhop()
 	std::visit([&](auto& x)
 		{
 			bhc::echo(x.first);
+			bhc::extsetup_blocking(x.first, true);
 			if (!bhc::run(x.first, x.second)) {
 				LogBellhop("Error in bhc::run. Check the log. ... continuing");
 			}
-			UpdateAllRays();
 		}, params);
 
 	working = false;
 	MarkBellhopRun(true);
+}
+
+/// <summary>
+/// Runs bellhop in the background so you can check progress.
+/// TODO: should implement a cancel, but has to change BHC.
+/// </summary>
+void FbellhopModule::BackgroundRunBellhop(std::function<void(void)> doneEvent)
+{
+	if (working) {
+		//not safe to call multiple times
+		UE_LOG(LogTemp, Warning, TEXT("multiple calls to background bellhop ... ignoring"));
+		return;
+	}
+
+	MarkBellhopRun(false);
+	BellhopDoneEvent = doneEvent;
+	GbellhopModulePtr = this;
+
+	std::visit([&](auto& x)
+		{
+			bhc::echo(x.first);
+			bhc::extsetup_blocking(x.first, false);
+			if (!bhc::run(x.first, x.second)) {
+				LogBellhop("Error in threaded bhc::run. Check the log. ... continuing");
+			}
+		}, params);
 }
 
 /// <summary>
@@ -1518,10 +1565,14 @@ void FbellhopModule::GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
 				for (int32_t isz = 0; isz < x.first.Pos->NSz; ++isz) {
 					for (int32_t Irz1 = 0; Irz1 < x.first.Pos->NRz_per_range; ++Irz1) {
 						for (int32_t r = 0; r < x.first.Pos->NRr; ++r) {
-							size_t ind = GetFieldAddr(isx, isy, isz, itheta, Irz1, r, x.first.Pos);
 							bhc::cpxf v = x.second.uAllSources[GetFieldAddr(
 								isx, isy, isz, itheta, Irz1, r, x.first.Pos)];
-							TransmissionLoss[itheta * Width * Height + Irz1 * Height + r] += v;
+							if (TransmissionLoss.IsValidIndex(itheta * Width * Height + Irz1 * Height + r)) {
+								TransmissionLoss[itheta * Width * Height + Irz1 * Height + r] += v;
+							}
+							else {
+								LogBellhop("Warning: Transmission loss access out of bounds ... something bad happend ... continuing with bad TL data.");
+							}
 						}
 					}
 				}
@@ -1548,6 +1599,21 @@ void FbellhopModule::GetTransmissionLoss(TArray<bhc::cpxf>& TransmissionLoss,
 	AllWidth = GetReceiverDepths();
 	AllHeight = GetReceiverRanges();
 	AllBearings = GetReceiverBearings();
+}
+
+/// <summary>
+/// Return the percent done for long calculations.
+/// OK to call at any time.
+/// </summary>
+/// <returns>integer from 0 to 100 for bellhop progress</returns>
+int FbellhopModule::GetPercentDone()
+{
+	int ret = 0;
+	std::visit([&](auto& x)
+		{
+			ret = bhc::get_percent_progress(x.first);
+		}, params);
+	return ret;
 }
 
 /// <summary>
@@ -1754,6 +1820,7 @@ void FbellhopModule::ResetBellhopInitialization()
 	BellhopInitializaiton.numThreads = -1;
 	BellhopInitializaiton.outputCallback = &LogBellhopOutput;
 	BellhopInitializaiton.prtCallback = &LogBellhopPRT;
+	BellhopInitializaiton.completedCallback = &BellhopDoneCallback;
 	BellhopInitializaiton.useRayCopyMode = false;
 }
 

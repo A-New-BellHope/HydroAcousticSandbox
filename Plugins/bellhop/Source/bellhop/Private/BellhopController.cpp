@@ -64,6 +64,27 @@ void ABellhopController::RunBellhop()
 	);
 }
 
+void ABellhopController::BackgroundRunBellhop()
+{
+	if (BellhopRunning) {
+		UE_LOG(LogTemp, Warning, TEXT("Warning (background): only one bellhop run at a time ... ignoring."));
+		return;
+	}
+
+	BellhopRunning = true;
+	BellhopDone = false;
+	UE_LOG(LogTemp, Warning, TEXT("Starting bellhop run"));
+	std::function<void(void)> callback = std::bind(&ABellhopController::BackgroundRunComplete, this);
+	Bellhop->BackgroundRunBellhop(callback);
+}
+
+void ABellhopController::BackgroundRunComplete()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Done bellhop run"));
+	BellhopRunning = false;
+	BellhopDone = true;
+}
+
 void ABellhopController::ReadFile(const FString& BellhopRoot, const bool& O3D, const bool& R3D)
 {
 	if (BellhopRunning) {
@@ -164,6 +185,35 @@ void ABellhopController::TestingFlattenSoundSpeedProfile()
 	}
 	Bellhop->SetSoundSpeedProfile(SSP);
 }
+
+/// <summary>
+/// Set the sound speed profile to be a Munk profile.
+/// </summary>
+void ABellhopController::MunkProfile()
+{
+	TArray<FVector2D> Profile;
+
+	double eps = 0.00737;  //magic number
+	double zc = 1300; //the depth of the SOFAR channel
+	double d = 0.0;
+	double StepSize = 100.0;
+
+	double MaxDepth = FMath::Max(-Bellhop->GetMaximumDepth(), -20000.0);
+
+	while (d > MaxDepth + 1.0) {
+		double zt = 2 * (-d - zc) / zc;
+		FVector2D x(d, 1500.0 * (1.0 + eps * (zt - 1.0 + FMath::Exp(-1.0 * zt))));
+		Profile.Add(x);
+		d -= StepSize;
+	}
+	d = MaxDepth;
+	double zt = 2 * (-d - zc) / zc;
+	FVector2D x(d, 1500.0 * (1.0 + eps * (zt - 1.0 + FMath::Exp(-1.0 * zt))));
+	Profile.Add(x);
+
+	Bellhop->Set1DSoundSpeedProfile(Profile);
+}
+
 /// <summary>
 /// Move the specified source.
 /// Will create course if it's not there.
@@ -476,6 +526,11 @@ void ABellhopController::SetTransmissionLossMode(ETransmissionLossMode tl)
 bool ABellhopController::IsTransmissionLossMode() const
 {
 	return Bellhop->IsTransmissionLossMode();
+}
+
+int ABellhopController::GetPercentDone()
+{
+	return Bellhop->GetPercentDone();
 }
 
 /// <summary>
