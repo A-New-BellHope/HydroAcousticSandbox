@@ -79,6 +79,16 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Bathymetry")
 	FHYCOMDoneEvent OnHYCOMDoneEvent;
 
+	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
+	bool OpenTIFF(FString& Filename);
+
+	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
+	bool LoadTiffBathymetry(const FString& Filename);
+
+	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
+	void SetTiffBounds(const double& North, const double& East,
+		const double& South, const double& West);
+
 private:
 	//helpers
 	void Init();
@@ -99,6 +109,25 @@ private:
 	const double EarthRadius = 6372797.56085;
 
 	FThreadSafeBool HYCOMDone;
+
+	//Geotiff members
+	TArray<float>  TiffDepthGrid;
+	int32          TiffWidth = 0;
+	int32          TiffHeight = 0;
+
+	// GeoTIFF origin in UTM meters (from ModelTiepointTag)
+	double TiffOriginEasting = 371587.5;
+	double TiffOriginNorthing = 4385687.5;
+	double TiffPixelSize = 25.0;       // meters per pixel
+
+	double TiffNorth = 39.6154;
+	double TiffSouth = 37.7762;
+	double TiffEast = -61.8695;
+	double TiffWest = -64.4581;
+
+	bool bTiffLoaded = false;
+
+	static constexpr float TIFF_NODATA = 3.4028234663852886e+38f;
 
 	// room for the hexahedral stuff
 	TArray<double> HexGridX;

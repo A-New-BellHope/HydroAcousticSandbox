@@ -161,7 +161,7 @@ void ABottom::UpdateBottomVertices()
 	}
 
 	BottomVertices = Bellhop->GetBoundaryPoints();
-
+	UE_LOG(LogTemp, Warning, TEXT("Mesh Z range: Min=%.2f Max=%.2f"), ZMin, ZMax);
 	bBottomDirty = false;
 }
 
@@ -198,6 +198,8 @@ bool ABottom::UpdateBottom(const TArray<double>& Depths,
 	const TArray<double>& GridX, const TArray<double>& GridY,
 	const bool& O3D)
 {
+	UE_LOG(LogTemp, Warning, TEXT("TIFF -> Bellhop: GridX=%d GridY=%d Depth=%d"),
+		GridX.Num(), GridY.Num(), Depths.Num());
 	if (O3D) {
 		Bellhop->SetBottom(Depths, GridX, GridY, true);
 	}
@@ -262,5 +264,5 @@ void ABottom::UpdateHeightMapUV()
 				FMath::Clamp(0.5 * (1.0 + v / ZMin), 0.5, 0.99));
 		}
 	}
-
+	UE_LOG(LogTemp, Warning, TEXT("Mesh Z range: Min=%.2f Max=%.2f"), ZMin, ZMax);
 }

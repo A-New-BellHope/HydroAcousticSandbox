@@ -149,6 +149,74 @@ bool ABathymetry::GetEarthBathymetry (
 	TArray<double> allX;
 	TArray<double> allY;
 
+	if (bTiffLoaded)
+	{
+		// Log what we actually received
+		UE_LOG(LogTemp, Warning, TEXT("TIFF bounds in: N=%.4f S=%.4f E=%.4f W=%.4f"),
+			North, South, East, West);
+		UE_LOG(LogTemp, Warning, TEXT("TIFF coverage:  N=%.4f S=%.4f E=%.4f W=%.4f"),
+			TiffNorth, TiffSouth, TiffEast, TiffWest);
+
+		double ClampedNorth = FMath::Min(North, TiffNorth);
+		double ClampedSouth = FMath::Max(South, TiffSouth);
+		double ClampedEast = FMath::Min(East, TiffEast);
+		double ClampedWest = FMath::Max(West, TiffWest);
+
+		if (ClampedSouth >= ClampedNorth || ClampedWest >= ClampedEast)
+		{
+			ErrorMessage(TEXT("TIFF: Requested bounds don't overlap TIFF coverage."));
+			return false;
+		}
+
+		int32 ColLow = (int32)((ClampedWest - TiffWest) / (TiffEast - TiffWest) * TiffWidth);
+		int32 ColHigh = (int32)((ClampedEast - TiffWest) / (TiffEast - TiffWest) * TiffWidth);
+		int32 RowLow = (int32)((TiffNorth - ClampedNorth) / (TiffNorth - TiffSouth) * TiffHeight);
+		int32 RowHigh = (int32)((TiffNorth - ClampedSouth) / (TiffNorth - TiffSouth) * TiffHeight);
+
+		ColLow = FMath::Clamp(ColLow, 0, TiffWidth - 1);
+		ColHigh = FMath::Clamp(ColHigh, 0, TiffWidth - 1);
+		RowLow = FMath::Clamp(RowLow, 0, TiffHeight - 1);
+		RowHigh = FMath::Clamp(RowHigh, 0, TiffHeight - 1);
+
+		// Subsample to keep output manageable for Bellhop
+		// Match whatever resolution the NetCDF path was giving you
+		int32 Step = FMath::Max(1, (ColHigh - ColLow) / 200);
+
+		UE_LOG(LogTemp, Warning, TEXT("TIFF pixel bounds: Col=%d-%d Row=%d-%d Step=%d"),
+			ColLow, ColHigh, RowLow, RowHigh, Step);
+
+		ActualWest = TiffWest + ColLow * (TiffEast - TiffWest) / TiffWidth;
+		ActualEast = TiffWest + ColHigh * (TiffEast - TiffWest) / TiffWidth;
+		ActualNorth = TiffNorth - RowLow * (TiffNorth - TiffSouth) / TiffHeight;
+		ActualSouth = TiffNorth - RowHigh * (TiffNorth - TiffSouth) / TiffHeight;
+
+		GridX.Empty();
+		for (int32 Row = RowLow; Row < RowHigh; Row += Step)
+		{
+			double Lat = TiffNorth - Row * (TiffNorth - TiffSouth) / TiffHeight;
+			GridX.Add(Distance(OriginLatitude, OriginLongitude, Lat, OriginLongitude)
+				* (Lat >= OriginLatitude ? 1.0 : -1.0));
+		}
+
+		GridY.Empty();
+		for (int32 Col = ColLow; Col < ColHigh; Col += Step)
+		{
+			double Lon = TiffWest + Col * (TiffEast - TiffWest) / TiffWidth;
+			GridY.Add(Distance(OriginLatitude, OriginLongitude, OriginLatitude, Lon)
+				* (Lon >= OriginLongitude ? 1.0 : -1.0));
+		}
+
+		Depth.Empty();
+		for (int32 Row = RowLow; Row < RowHigh; Row += Step)
+			for (int32 Col = ColLow; Col < ColHigh; Col += Step)
+				Depth.Add(-TiffDepthGrid[Row * TiffWidth + Col]);
+
+		UE_LOG(LogTemp, Warning, TEXT("TIFF -> Bellhop: GridX=%d GridY=%d Depth=%d"),
+			GridX.Num(), GridY.Num(), Depth.Num());
+
+		return true;
+	}
+
 	if (!EarthBathymetry->GetArray("lon", allX) ||
 		!EarthBathymetry->GetArray("lat", allY)) {
 		ErrorMessage("Error: could not read lat/long data. "
@@ -356,6 +424,133 @@ FVector ABathymetry::PositionToLatLong(const FVector& Position) const
 
 	return FVector(FMath::RadiansToDegrees(newLatRad),
 		FMath::RadiansToDegrees(newLonRad), 0);
+}
+
+bool ABathymetry::OpenTIFF(FString& Filename)
+{
+	TArray<FString> OutFileNames;
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	bool bOpened = false;
+	if (DesktopPlatform)
+	{
+		const void* ParentWindowHandle = FSlateApplication::Get()
+			.GetActiveTopLevelWindow()->GetNativeWindow()->GetOSWindowHandle();
+		bOpened = DesktopPlatform->OpenFileDialog(
+			ParentWindowHandle,
+			TEXT("Open Bathymetry TIFF"),
+			TEXT(""),
+			TEXT(""),
+			TEXT("TIFF Files (*.tif;*.tiff)|*.tif;*.tiff"),
+			EFileDialogFlags::None,
+			OutFileNames
+		);
+	}
+	if (bOpened && OutFileNames.Num() > 0)
+	{
+		Filename = OutFileNames[0];
+		return LoadTiffBathymetry(Filename);
+	}
+	return false;
+}
+
+bool ABathymetry::LoadTiffBathymetry(const FString& Filename)
+{
+	TArray<uint8> Bytes;
+	if (!FFileHelper::LoadFileToArray(Bytes, *Filename))
+	{
+		ErrorMessage(TEXT("TIFF: Failed to read file."));
+		return false;
+	}
+
+	const uint8* D = Bytes.GetData();
+	if (Bytes.Num() < 8 || D[0] != 'I' || D[1] != 'I')
+	{
+		ErrorMessage(TEXT("TIFF: Not a valid little-endian TIFF."));
+		return false;
+	}
+
+	// Helper lambdas
+	auto U16 = [&](int32 o) { uint16 v; FMemory::Memcpy(&v, D + o, 2); return v; };
+	auto U32 = [&](int32 o) { uint32 v; FMemory::Memcpy(&v, D + o, 4); return v; };
+
+	uint32 IFDOff = U32(4);
+	uint16 NumEntries = U16(IFDOff);
+
+	uint32 Width = 0, Height = 0;
+	TArray<uint32> StripOffsets, StripByteCounts;
+
+	for (int32 i = 0; i < NumEntries; ++i)
+	{
+		int32  E = IFDOff + 2 + i * 12;
+		uint16 Tag = U16(E);
+		uint16 Typ = U16(E + 2);
+		uint32 Cnt = U32(E + 4);
+
+		auto Val = [&]() -> uint32 {
+			uint32 tb = (Typ == 3 ? 2u : 4u) * Cnt;
+			if (tb <= 4) return Typ == 3 ? U16(E + 8) : U32(E + 8);
+			uint32 off = U32(E + 8); return Typ == 3 ? U16(off) : U32(off);
+		};
+		auto Arr = [&](TArray<uint32>& Out) {
+			uint32 tb = (Typ == 3 ? 2u : 4u) * Cnt;
+			uint32 off = (tb <= 4) ? (uint32)(E + 8) : U32(E + 8);
+			for (uint32 s = 0; s < Cnt; ++s)
+				Out.Add(Typ == 3 ? U16(off + s * 2) : U32(off + s * 4));
+		};
+
+		switch (Tag)
+		{
+		case 256: Width = Val(); break;
+		case 257: Height = Val(); break;
+		case 273: Arr(StripOffsets);    break;
+		case 279: Arr(StripByteCounts); break;
+		}
+	}
+
+	TiffWidth = (int32)Width;
+	TiffHeight = (int32)Height;
+	int32 Total = TiffWidth * TiffHeight;
+	TiffDepthGrid.SetNumUninitialized(Total);
+
+	// Uncompressed float32 read — one strip per row (RowsPerStrip=1)
+	int32 Cursor = 0;
+	for (int32 s = 0; s < StripOffsets.Num() && Cursor < Total; ++s)
+	{
+		const uint8* Row = D + StripOffsets[s];
+		int32        NPix = StripByteCounts[s] / 4;
+		for (int32 p = 0; p < NPix && Cursor < Total; ++p, ++Cursor)
+		{
+			float Val; FMemory::Memcpy(&Val, Row + p * 4, 4);
+			TiffDepthGrid[Cursor] = (Val >= TIFF_NODATA * 0.5f) ? 0.f : Val;
+		}
+	}
+
+	float FallbackDepth = 0.f;
+	for (float V : TiffDepthGrid)
+		if (V < 0.f && V > -1e30f) // valid negative depth
+			FallbackDepth = FMath::Min(FallbackDepth, V);
+
+	UE_LOG(LogTemp, Warning, TEXT("TIFF: Deepest valid depth = %.2f m, using as NoData fill."),
+		FallbackDepth);
+
+	// Replace NoData with the deepest depth so they sit flat at the bottom
+	for (float& V : TiffDepthGrid)
+		if (V >= TIFF_NODATA * 0.5f || V == 0.f)
+			V = FallbackDepth;
+
+	bTiffLoaded = true;
+	FScalarParameterValue();
+	UE_LOG(LogTemp, Log, TEXT("TIFF loaded: %dx%d, origin (%.1f, %.1f) UTM Zone 20N"),
+		TiffWidth, TiffHeight, TiffOriginEasting, TiffOriginNorthing);
+	return true;
+}
+
+void ABathymetry::SetTiffBounds(const double& North, const double& East, const double& South, const double& West)
+{
+	TiffNorth = North;
+	TiffEast = East;
+	TiffSouth = South;
+	TiffWest = West;
 }
 
 /// <summary>
