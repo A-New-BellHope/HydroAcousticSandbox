@@ -63,6 +63,6 @@ private:
 	TArray<FVector> BottomVertices;
 	TArray<FVector2D> HeightMapUV;
 
-	double ZMin = -1000.0;
-	double ZMax = 1000.0;
+	double ZMin = -5389.06;
+	double ZMax = 3969.89;
 };

@@ -89,6 +89,8 @@ public:
 	void SetTiffBounds(const double& North, const double& East,
 		const double& South, const double& West);
 
+
+
 private:
 	//helpers
 	void Init();

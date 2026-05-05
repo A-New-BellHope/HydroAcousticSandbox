@@ -180,7 +180,7 @@ bool ABathymetry::GetEarthBathymetry (
 
 		// Subsample to keep output manageable for Bellhop
 		// Match whatever resolution the NetCDF path was giving you
-		int32 Step = FMath::Max(1, (ColHigh - ColLow) / 200);
+		int32 Step = 3;
 
 		UE_LOG(LogTemp, Warning, TEXT("TIFF pixel bounds: Col=%d-%d Row=%d-%d Step=%d"),
 			ColLow, ColHigh, RowLow, RowHigh, Step);
