@@ -64,5 +64,5 @@ private:
 	TArray<FVector2D> HeightMapUV;
 
 	double ZMin = -5389.06;
-	double ZMax = 3969.89;
+	double ZMax = -1419.17;
 };
