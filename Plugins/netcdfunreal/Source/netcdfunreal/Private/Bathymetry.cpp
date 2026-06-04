@@ -214,6 +214,43 @@ bool ABathymetry::GetEarthBathymetry (
 		UE_LOG(LogTemp, Warning, TEXT("TIFF -> Bellhop: GridX=%d GridY=%d Depth=%d"),
 			GridX.Num(), GridY.Num(), Depth.Num());
 
+		// Sort GridX monotonically and track permutation
+		TArray<int32> RowOrder;
+		RowOrder.SetNum(GridX.Num());
+		for (int32 i = 0; i < RowOrder.Num(); ++i) RowOrder[i] = i;
+		RowOrder.Sort([&](int32 A, int32 B) { return GridX[A] < GridX[B]; });
+
+		TArray<double> SortedGridX;
+		SortedGridX.SetNum(GridX.Num());
+		for (int32 i = 0; i < RowOrder.Num(); ++i)
+			SortedGridX[i] = GridX[RowOrder[i]];
+
+		// Sort GridY monotonically and track permutation
+		TArray<int32> ColOrder;
+		ColOrder.SetNum(GridY.Num());
+		for (int32 i = 0; i < ColOrder.Num(); ++i) ColOrder[i] = i;
+		ColOrder.Sort([&](int32 A, int32 B) { return GridY[A] < GridY[B]; });
+
+		TArray<double> SortedGridY;
+		SortedGridY.SetNum(GridY.Num());
+		for (int32 i = 0; i < ColOrder.Num(); ++i)
+			SortedGridY[i] = GridY[ColOrder[i]];
+
+		// Rebuild Depth in sorted order
+		TArray<double> SortedDepth;
+		SortedDepth.SetNum(GridX.Num() * GridY.Num());
+		for (int32 r = 0; r < RowOrder.Num(); ++r)
+			for (int32 c = 0; c < ColOrder.Num(); ++c)
+				SortedDepth[r * ColOrder.Num() + c] =
+				Depth[RowOrder[r] * GridY.Num() + ColOrder[c]];
+
+		GridX = SortedGridX;
+		GridY = SortedGridY;
+		Depth = SortedDepth;
+
+		UE_LOG(LogTemp, Warning, TEXT("TIFF -> Bellhop: GridX=%d GridY=%d Depth=%d"),
+			GridX.Num(), GridY.Num(), Depth.Num());
+
 		return true;
 	}
 
@@ -324,6 +361,7 @@ void ABathymetry::GetEarthSoundSpeed(const double& North, const double& East,
 			if (!hycomSuccess) {
 				ErrorMessage("Error: could not read HYCOM data. "
 					"Defaulting to a Munk profile ... returning.");
+				HexSoundSpeed.Empty();
 				HYCOMDone = true;
 				return;
 			}
