@@ -20,6 +20,15 @@ void AFollowRays::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (bGrowing)
+	{
+		GrowElapsed += DeltaTime;
+		const float Alpha = FMath::Clamp(GrowElapsed / GrowDuration, 0.0f, 1.0f);
+		const int32 Target = FMath::CeilToInt(Alpha * TriangleCountAtNode.Num());
+		RebuildUpToNode(Target);
+		if (Alpha >= 1.0f) bGrowing = false;
+	}
+
 	if (!Bellhop->IsBellhopReady())
 	{
 		return;
@@ -72,6 +81,21 @@ void AFollowRays::UpdateMeshToPoint(const FVector& End)
 	}
 	//0, Vertices, Triangles, Normals, UVs, VertexColors, Tangents, false
 	RayMesh->UpdateMeshSection_LinearColor(0, v, Normals, UVs, VertexColors, Tangents, false);
+}
+
+void AFollowRays::RebuildUpToNode(int32 NodeCount)
+{
+	if (!RayMesh || TriangleCountAtNode.Num() == 0) return;
+
+	NodeCount = FMath::Clamp(NodeCount, 1, TriangleCountAtNode.Num());
+	const int32 TriLen = TriangleCountAtNode[NodeCount - 1];
+
+	TArray<int32> TriSlice(Triangles.GetData(), TriLen);
+
+	RayMesh->ClearAllMeshSections();
+	RayMesh->CreateMeshSection_LinearColor(
+		0, Vertices, TriSlice, Normals, UVs, VertexColors, Tangents, false);
+	RayMesh->SetCastShadow(false);
 }
 
 void AFollowRays::SetVector2Ds(const int& InRayID)
@@ -155,6 +179,13 @@ void AFollowRays::AttachParticles()
 	NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(Particle, SphereVisual, NAME_None, SphereVisual->GetComponentLocation(), FRotator(0.f), EAttachLocation::Type::KeepRelativeOffset, false, true);
 }
 
+void AFollowRays::StartReveal()
+{
+	if (TriangleCountAtNode.Num() == 0) return;   // nothing built yet
+	GrowElapsed = 0.0f;
+	bGrowing = true;
+}
+
 void AFollowRays::GenerateMesh(const TArray<FVector4>& Nodes, const float& Radius)
 {
 	int TopVertex = 0;
@@ -165,6 +196,7 @@ void AFollowRays::GenerateMesh(const TArray<FVector4>& Nodes, const float& Radiu
 	Vertices.Empty();
 	Triangles.Empty();
 	UVs.Empty();
+	TriangleCountAtNode.Empty();
 
 	for (int i = 0; i < Nodes.Num(); ++i)
 	{
@@ -197,6 +229,8 @@ void AFollowRays::GenerateMesh(const TArray<FVector4>& Nodes, const float& Radiu
 			BottomVertex += nStep;
 			RightVertex += nStep;
 			LeftVertex += nStep;
+
+			TriangleCountAtNode.Add(Triangles.Num());
 		}
 		else
 		{
@@ -250,16 +284,16 @@ void AFollowRays::GenerateMesh(const TArray<FVector4>& Nodes, const float& Radiu
 			BottomVertex += nStep;
 			RightVertex += nStep;
 			LeftVertex += nStep;
+
+			TriangleCountAtNode.Add(Triangles.Num());
 		}
 	}
 
 	Normals.Init(FVector(0.0f, 0.0f, 1.0f), Nodes.Num() * 4);
 	VertexColors.Init(FLinearColor(1.0f, 0.0f, 0.0f, 1.0f), Nodes.Num() * 4);
 	Tangents.Init(FProcMeshTangent(1.0f, 0.0f, 0.0f), Nodes.Num() * 4);
-	if (RayMesh)
-	{
-		RayMesh->ClearAllMeshSections();
-	}
-	RayMesh->CreateMeshSection_LinearColor(0, Vertices, Triangles, Normals, UVs, VertexColors, Tangents, false);
-	RayMesh->SetCastShadow(false);
+
+	GrowElapsed = 0.0f;
+	bGrowing = false;
+	RebuildUpToNode(1);   // seed first ring so it isn't empty
 }

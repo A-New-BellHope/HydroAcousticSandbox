@@ -88,6 +88,8 @@ public:
 		double GetUnitConversion() const;
 	UFUNCTION(BlueprintCallable, Category = "Bellhop Acoustic Library")
 		void AttachParticles();
+	UFUNCTION(BlueprintCallable, Category = "Rays")
+		void StartReveal();
 
 	void SetRayID(const int& InRayID);
 	void SetAngle(const float& InAngle);
@@ -97,8 +99,8 @@ private:
 	//helpers
 	void Init();
 	void GenerateMesh(const TArray<FVector4>& Nodes, const float& Radius = 10.0f);
-
 	void UpdateMeshToPoint(const FVector& End);
+	void RebuildUpToNode(int32 NodeCount);
 
 private:
 	//members
@@ -109,6 +111,10 @@ private:
 	bool Initialized = false;
 	double RayMaxArrivalTime;
 	FbellhopModule* Bellhop;
-
 	FVector LastEnd{ 0.0, 0.0, 0.0 };
+	// Cached full triangle list + reveal bookkeeping
+	TArray<int32> TriangleCountAtNode;   // cumulative triangle-index count per node
+	float GrowElapsed = 0.0f;
+	float GrowDuration = 2.0f;           // seconds for full reveal
+	bool  bGrowing = false;
 };
