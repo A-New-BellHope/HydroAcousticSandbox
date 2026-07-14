@@ -236,7 +236,7 @@ void ABottom::UpdateHeightMapUV()
 	}
 	depths.Sort();
 
-	int SkipExtreme = 10;
+	int SkipExtreme = 5;
 	int N = depths.Num();
 	ZMin = depths[ (SkipExtreme < N) ? SkipExtreme : 0];
 	ZMax = depths[(SkipExtreme < N) ? N - SkipExtreme - 1 : N - 1];
