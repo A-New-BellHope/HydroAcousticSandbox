@@ -577,6 +577,7 @@ bool ABathymetry::LoadTiffBathymetry(const FString& Filename)
 			V = FallbackDepth;
 
 	bTiffLoaded = true;
+	BuildHeightTexture();
 	FScalarParameterValue();
 	UE_LOG(LogTemp, Log, TEXT("TIFF loaded: %dx%d, origin (%.1f, %.1f) UTM Zone 20N"),
 		TiffWidth, TiffHeight, TiffOriginEasting, TiffOriginNorthing);
@@ -589,6 +590,92 @@ void ABathymetry::SetTiffBounds(const double& North, const double& East, const d
 	TiffEast = East;
 	TiffSouth = South;
 	TiffWest = West;
+}
+/// <summary>
+/// 
+/// </summary>
+/// <param name="MaxDimension"></param>
+/// <returns></returns>
+bool ABathymetry::BuildHeightTexture(int32 MaxDimension)
+{
+	if (!bTiffLoaded || TiffDepthGrid.Num() != TiffWidth * TiffHeight)
+	{
+		ErrorMessage(TEXT("BuildHeightTexture: no TIFF loaded."));
+		return false;
+	}
+
+	// Downsample step so the longer axis lands near MaxDimension.
+	const int32 Step = FMath::Max(1,
+		FMath::CeilToInt(float(FMath::Max(TiffWidth, TiffHeight)) / float(MaxDimension)));
+
+	const int32 TexW = TiffWidth / Step;
+	const int32 TexH = TiffHeight / Step;
+	if (TexW < 2 || TexH < 2)
+	{
+		ErrorMessage(TEXT("BuildHeightTexture: degenerate texture size."));
+		return false;
+	}
+
+	// Area-average each block into a float buffer; track true min/max.
+	TArray<float> Pixels;
+	Pixels.SetNumUninitialized(TexW * TexH);
+
+	float MinV = FLT_MAX;
+	float MaxV = -FLT_MAX;
+
+	for (int32 ty = 0; ty < TexH; ++ty)
+	{
+		for (int32 tx = 0; tx < TexW; ++tx)
+		{
+			const int32 r0 = ty * Step;
+			const int32 c0 = tx * Step;
+			double Sum = 0.0;
+			int32  Count = 0;
+			for (int32 r = r0; r < r0 + Step && r < TiffHeight; ++r)
+				for (int32 c = c0; c < c0 + Step && c < TiffWidth; ++c)
+				{
+					Sum += TiffDepthGrid[r * TiffWidth + c];
+					++Count;
+				}
+			const float V = (Count > 0) ? float(Sum / Count) : 0.f;
+			Pixels[ty * TexW + tx] = V;   // raw elevation: high = shallow summit
+			MinV = FMath::Min(MinV, V);
+			MaxV = FMath::Max(MaxV, V);
+		}
+	}
+
+	HeightMinMeters = MinV;
+	HeightMaxMeters = MaxV;
+	HeightTexelSize = FVector2D(1.0 / TexW, 1.0 / TexH);
+
+	// Create an R32F texture and copy the float buffer into mip 0.
+	UTexture2D* Tex = UTexture2D::CreateTransient(TexW, TexH, PF_R32_FLOAT);
+	if (!Tex)
+	{
+		ErrorMessage(TEXT("BuildHeightTexture: CreateTransient failed."));
+		return false;
+	}
+
+	Tex->SRGB = false;
+	Tex->CompressionSettings = TC_HDR;             // no block compression on floats
+	Tex->Filter = TF_Bilinear;
+	Tex->AddressX = TA_Clamp;
+	Tex->AddressY = TA_Clamp;
+	Tex->MipGenSettings = TMGS_NoMipmaps;
+	Tex->NeverStream = true;
+
+	FTexture2DMipMap& Mip = Tex->GetPlatformData()->Mips[0];
+	void* Data = Mip.BulkData.Lock(LOCK_READ_WRITE);
+	FMemory::Memcpy(Data, Pixels.GetData(), Pixels.Num() * sizeof(float));
+	Mip.BulkData.Unlock();
+	Tex->UpdateResource();
+
+	HeightTexture = Tex;
+
+	UE_LOG(LogTemp, Log,
+		TEXT("HeightTexture built: %dx%d (step %d), depth range [%.1f, %.1f] m"),
+		TexW, TexH, Step, MinV, MaxV);
+	return true;
 }
 
 /// <summary>

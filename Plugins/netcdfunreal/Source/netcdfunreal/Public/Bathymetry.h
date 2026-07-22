@@ -8,6 +8,7 @@
 #include "DesktopPlatformModule.h"
 #include "IDesktopPlatform.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Engine/Texture2D.h"
 #include "netcdfunreal.h"
 #include <algorithm>
 #include "Bathymetry.generated.h"
@@ -88,6 +89,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
 	void SetTiffBounds(const double& North, const double& East,
 		const double& South, const double& West);
+
+	UFUNCTION(BlueprintCallable, Category = "Bathymetry")
+	bool BuildHeightTexture(int32 MaxDimension = 4096);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Bathymetry")
+	UTexture2D* HeightTexture = nullptr;
+
+	// Texel size (1/width, 1/height) for central-difference sampling in the material.
+	UPROPERTY(BlueprintReadOnly, Category = "Bathymetry")
+	FVector2D HeightTexelSize = FVector2D::ZeroVector;
+
+	// Actual depth range packed into the texture, if you later switch to normalized formats.
+	UPROPERTY(BlueprintReadOnly, Category = "Bathymetry")
+	float HeightMinMeters = 0.f;
+	UPROPERTY(BlueprintReadOnly, Category = "Bathymetry")
+	float HeightMaxMeters = 0.f;
 
 
 
